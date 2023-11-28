@@ -49,7 +49,7 @@ fn create_rect(graph: &mut Graph, resource_manager: ResourceManager) -> Handle<N
         ),
     )
     .with_color(Color::RED)
-    .with_texture(resource_manager.request::<Texture, _>("path/to/your_texture.jpg"))
+    .with_texture(resource_manager.request::<Texture, _>("data/rcircle.png"))
     .build(graph)
 }
 
@@ -90,23 +90,37 @@ impl Plugin for Game {
     }
 
     fn update(&mut self, _context: &mut PluginContext) {
-        // Add your global update code here.
 
         //read in all new gilrs events
         while let Some(Event { id, event, time }) = gilrs.next_event() {
             
+            //matching on the event type 
             match event.event {
                 Connected => {
                     //create a new player
                     //context.script.graph[handle]
-
+                    let player_handle = create_cube_rigid_body(context.scene.graph);
+                    //create a sprite for the player
+                    let sprite_handle = create_rect(context.scene.graph, context.resource_manager);
+                    //make the sprite a child of the player
+                    context.scene.graph.link_nodes(sprite_handle, player_handle);
+                    //add the player to the game's struct
+                    self.players.insert(id, player_handle);
 
                 },
                 AxisChanged(axis, value, code) => {
                     if let Some(handle) = players.get(id){
                         match axis {
-                            LeftStickX => // change the x velocity of the right player
-                            LeftStickY =>
+                            LeftStickX => {// change the x velocity of the right player
+                                if let Some(player) = context.script.graph[handle].cast_mut::<RigidBody>() {
+                                    player.set_lin_vel(Vector2::new(value, player.lin_vel().y));
+                                }
+                            },
+                            LeftStickY => {// change the x velocity of the right player
+                                if let Some(player) = context.script.graph[handle].cast_mut::<RigidBody>() {
+                                    player.set_lin_vel(Vector2::new(player.lin_vel().x, value));
+                                }
+                            },
                             _ => (), //for now
                         }
                     }
