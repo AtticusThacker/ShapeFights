@@ -113,6 +113,12 @@ impl Plugin for Game {
             //matching on the event type 
             match event {
                 Connected => {
+                    //NOTE on these; context has a field scenes which is a scenecontainer
+                    // and scenecontainer can be indexed by Handle<Scene>, which is what self.scene is.
+                    // then, graph can be indexed by a Handle<Node>>, to get a dynamic object that we
+                    // have to 'downcast' using the .cast_mut thingy to get the actual player object.
+                    // its complicated i know, but it works!
+
                     //create a new player
                     let player_handle = create_cube_rigid_body(&mut context.scenes[self.scene].graph);
                     //create a sprite for the player
