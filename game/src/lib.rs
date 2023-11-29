@@ -39,6 +39,7 @@ use gilrs::{
     EventType::*, 
 };
 
+pub mod class;
 
 fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
