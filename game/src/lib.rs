@@ -1,5 +1,7 @@
 //! Game project.
+use std::collections::HashMap;
 use fyrox::{
+
     core::{
         pool::Handle,
         algebra::{Vector2, Vector3},
@@ -16,30 +18,44 @@ use fyrox::{
     impl_component_provider,
     resource::texture::Texture,
     scene::{
-        dim2::{rectangle::Rectangle, rigidbody::RigidBody},
+        dim2::{
+            rectangle::{Rectangle, RectangleBuilder}, 
+            rigidbody::{RigidBody, RigidBodyBuilder}, 
+            collider::{ColliderShape, ColliderBuilder},
+        },
         node::{Node},
         Scene, SceneLoader, SceneContainer,
+        graph::{Graph},
+        base::BaseBuilder,
+        transform::TransformBuilder,
     },
     script::{ScriptContext, ScriptTrait},
-    
 };
 use std::path::Path;
 use gilrs as g;
+use gilrs::{
+    Gilrs,
+    Event as gEvent,
+    EventType::*, 
+};
 
 
 fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
             // Rigid body must have at least one collider
             ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(ColliderShape::cuboid(0.5, 0.5, 0.5))
+                .with_shape(ColliderShape::cuboid(0.5, 0.5))
                 .build(graph),
         ]))
     .with_mass(2.0)
+    .with_gravity_scale(0.0)
+    .with_can_sleep(false)
+    .with_rotation_locked(true)
     .with_lin_vel(Vector2::new(0.0, 0.0))
     .build(graph)
 }
 
-fn create_rect(graph: &mut Graph, resource_manager: ResourceManager) -> Handle<Node> {
+fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<Node> {
     RectangleBuilder::new(
         BaseBuilder::new().with_local_transform(
             TransformBuilder::new()
@@ -48,7 +64,6 @@ fn create_rect(graph: &mut Graph, resource_manager: ResourceManager) -> Handle<N
                 .build(),
         ),
     )
-    .with_color(Color::RED)
     .with_texture(resource_manager.request::<Texture, _>("data/rcircle.png"))
     .build(graph)
 }
@@ -68,7 +83,7 @@ impl PluginConstructor for GameConstructor {
 pub struct Game {
     scene: Handle<Scene>,
     gils: Gilrs,
-    players: HashMap<g.GamepadId, &Handle<Node>>
+    players: HashMap<g::GamepadId, Handle<Node>>
 }
 
 impl Game {
@@ -79,7 +94,8 @@ impl Game {
 
         Self {
             scene: Handle::NONE,
-            gils: Gilrs::new().unwrap();
+            gils: Gilrs::new().unwrap(),
+            players: HashMap::new(),
         }
     }
 }
@@ -89,35 +105,34 @@ impl Plugin for Game {
         // Do a cleanup here.
     }
 
-    fn update(&mut self, _context: &mut PluginContext) {
+    fn update(&mut self, context: &mut PluginContext) {
 
         //read in all new gilrs events
-        while let Some(Event { id, event, time }) = gilrs.next_event() {
+        while let Some(gEvent { id, event, time }) = self.gils.next_event() {
             
             //matching on the event type 
-            match event.event {
+            match event {
                 Connected => {
                     //create a new player
-                    //context.script.graph[handle]
-                    let player_handle = create_cube_rigid_body(context.scene.graph);
+                    let player_handle = create_cube_rigid_body(&mut context.scenes[self.scene].graph);
                     //create a sprite for the player
-                    let sprite_handle = create_rect(context.scene.graph, context.resource_manager);
+                    let sprite_handle = create_rect(&mut context.scenes[self.scene].graph, context.resource_manager);
                     //make the sprite a child of the player
-                    context.scene.graph.link_nodes(sprite_handle, player_handle);
+                    context.scenes[self.scene].graph.link_nodes(sprite_handle, player_handle);
                     //add the player to the game's struct
                     self.players.insert(id, player_handle);
 
                 },
                 AxisChanged(axis, value, code) => {
-                    if let Some(handle) = players.get(id){
+                    if let Some(handle) = self.players.get(&id){
                         match axis {
-                            LeftStickX => {// change the x velocity of the right player
-                                if let Some(player) = context.script.graph[handle].cast_mut::<RigidBody>() {
-                                    player.set_lin_vel(Vector2::new(value, player.lin_vel().y));
+                            g::Axis::LeftStickX => {// change the x velocity of the right player
+                                if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
+                                    player.set_lin_vel(Vector2::new(-value, player.lin_vel().y));
                                 }
                             },
-                            LeftStickY => {// change the x velocity of the right player
-                                if let Some(player) = context.script.graph[handle].cast_mut::<RigidBody>() {
+                            g::Axis::LeftStickY => {// change the x velocity of the right player
+                                if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
                                     player.set_lin_vel(Vector2::new(player.lin_vel().x, value));
                                 }
                             },
