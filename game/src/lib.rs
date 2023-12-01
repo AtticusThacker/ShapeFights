@@ -38,8 +38,11 @@ use gilrs::{
     Event as gEvent,
     EventType::*, 
 };
+use fyrox::script::Script;
 
 pub mod class;
+pub mod messages;
+use messages::Message;
 
 fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
@@ -69,11 +72,16 @@ fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<
     .build(graph)
 }
 
+fn set_script<T: ScriptTrait>(node: &mut Node, script: T) {
+    node.set_script(Some(Script::new(script)))
+}
+
 pub struct GameConstructor;
 
 impl PluginConstructor for GameConstructor {
-    fn register(&self, _context: PluginRegistrationContext) {
+    fn register(&self, context: PluginRegistrationContext) {
         // Register your scripts here.
+        context.serialization_context.script_constructors.add::<Player>("Player");
     }
 
     fn create_instance(&self, scene_path: Option<&str>, context: PluginContext) -> Box<dyn Plugin> {
@@ -129,7 +137,13 @@ impl Plugin for Game {
                     //add the player to the game's struct
                     self.players.insert(id, player_handle);
 
+                    //adds script player to object
+                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], Player)
+
                 },
+                _ => if let Some(player_handle) = self.players.get(&id) {
+                    
+                }
                 AxisChanged(axis, value, code) => {
                     if let Some(handle) = self.players.get(&id){
                         match axis {
@@ -207,7 +221,9 @@ impl ScriptTrait for Player {
     fn on_init(&mut self, context: &mut ScriptContext) {}
     
     // Put start logic - it is called when every other script is already initialized.
-    fn on_start(&mut self, context: &mut ScriptContext) { }
+    fn on_start(&mut self, context: &mut ScriptContext) { 
+        context.message_dispatcher.subscribe_to::<Message>(context.handle);
+    }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
     fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {}
