@@ -29,7 +29,8 @@ use fyrox::{
         base::BaseBuilder,
         transform::TransformBuilder,
     },
-    script::{ScriptContext, ScriptTrait},
+    script::{ScriptContext, ScriptTrait, ScriptMessageSender, 
+        ScriptMessagePayload, ScriptMessageContext},
 };
 use std::path::Path;
 use gilrs as g;
@@ -42,7 +43,11 @@ use fyrox::script::Script;
 
 pub mod class;
 pub mod messages;
-use messages::Message;
+use messages::{
+    Message,
+    Message::{Controller},
+};
+use class::Class;
 
 fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
@@ -92,7 +97,8 @@ impl PluginConstructor for GameConstructor {
 pub struct Game {
     scene: Handle<Scene>,
     gils: Gilrs,
-    players: HashMap<g::GamepadId, Handle<Node>>
+    players: HashMap<g::GamepadId, Handle<Node>>,
+    messager: Option<ScriptMessageSender>,
 }
 
 impl Game {
@@ -105,6 +111,7 @@ impl Game {
             scene: Handle::NONE,
             gils: Gilrs::new().unwrap(),
             players: HashMap::new(),
+            messager: None,
         }
     }
 }
@@ -138,29 +145,32 @@ impl Plugin for Game {
                     self.players.insert(id, player_handle);
 
                     //adds script player to object
-                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], Player)
+                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], Player{class: Class::Fighter})
 
                 },
+                //send the controller event to the player
                 _ => if let Some(player_handle) = self.players.get(&id) {
-                    
-                }
-                AxisChanged(axis, value, code) => {
-                    if let Some(handle) = self.players.get(&id){
-                        match axis {
-                            g::Axis::LeftStickX => {// change the x velocity of the right player
-                                if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
-                                    player.set_lin_vel(Vector2::new(-value, player.lin_vel().y));
-                                }
-                            },
-                            g::Axis::LeftStickY => {// change the x velocity of the right player
-                                if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
-                                    player.set_lin_vel(Vector2::new(player.lin_vel().x, value));
-                                }
-                            },
-                            _ => (), //for now
-                        }
+                    if let Some(message_sender) = &self.messager {
+                        message_sender.send_to_target(player_handle.clone(), Message::Controller{event});
                     }
-                },
+                }
+                // AxisChanged(axis, value, code) => {
+                //     if let Some(handle) = self.players.get(&id){
+                //         match axis {
+                //             g::Axis::LeftStickX => {// change the x velocity of the right player
+                //                 if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
+                //                     player.set_lin_vel(Vector2::new(-value, player.lin_vel().y));
+                //                 }
+                //             },
+                //             g::Axis::LeftStickY => {// change the x velocity of the right player
+                //                 if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
+                //                     player.set_lin_vel(Vector2::new(player.lin_vel().x, value));
+                //                 }
+                //             },
+                //             _ => (), //for now
+                //         }
+                //     }
+                // },
                 _ => (), //for now
 
             }
@@ -201,11 +211,21 @@ impl Plugin for Game {
     ) {    
         self.scene = scene;
 
+        //gets the message sender for the current scene. why is this such a pain??
+        for scripted_scene in &context.script_processor.scripted_scenes {
+            if scripted_scene.handle == self.scene {
+                self.messager = Option::Some(scripted_scene.message_sender.clone());
+            }
+        }
+
     }
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
-struct Player;
+struct Player{
+   class: Class 
+
+}
 
 impl_component_provider!(Player,);
 
@@ -230,6 +250,27 @@ impl ScriptTrait for Player {
 
     // Called every frame at fixed rate of 60 FPS.
     fn on_update(&mut self, context: &mut ScriptContext) {}
+
+    fn on_message(&mut self,
+        message: &mut dyn ScriptMessagePayload,
+        _ctx: &mut ScriptMessageContext,
+    ) {
+        if let Some(message) = message.downcast_ref::<Message>(){
+            match message {
+                Controller{event} => {
+                    match event {
+                        // put the various controller events here, as well as calls to
+                        //the correct class methods-- player has a class field now!
+                        AxisChanged(axis, value, _code) => (),
+                        _ => (),
+                    }
+
+                },
+                _ => (),
+            }
+
+        }
+    }
 
     // Returns unique script ID for serialization needs.
     fn id(&self) -> Uuid {
