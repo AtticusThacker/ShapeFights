@@ -39,6 +39,7 @@ use gilrs::{
     Event as gEvent,
     EventType::*,
     EventType, 
+    Axis,
 };
 use fyrox::script::Script;
 
@@ -57,17 +58,27 @@ pub enum Class {
 }
 
 impl Class {
-    static BARBSPD:f32 = 1;
-    static ROGSPD:f32 = 2;
-    static WIZSPD:f32 = 1;
-    static FIGSPD:f32 = 1;
+    const BARBSPD:f32 = 1.0;
+    const ROGSPD:f32 = 2.0;
+    const WIZSPD:f32 = 1.0;
+    const FIGSPD:f32 = 1.0;
     
-    fn moveplayer(&self, event: &EventType, ctx: &mut ScriptMessageContext) {
+    pub fn moveplayer(&self, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
-            match self {
-                Class::Barbarian => {}
-            };
-        }
+            match (axis, self) {
+                (g::Axis::LeftStickX, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::ROGSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::WIZSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::FIGSPD, rigid_body.lin_vel().y));},
+            
+                (g::Axis::LeftStickY, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::BARBSPD));},
+                (g::Axis::LeftStickY, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::ROGSPD));},
+                (g::Axis::LeftStickY, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
+                (g::Axis::LeftStickY, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
+
+                _ => (),
+            }
+        } else {println!("didn't get rigidbody");} 
     }
 }
 

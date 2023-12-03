@@ -31,6 +31,8 @@ use fyrox::{
     },
     script::{ScriptContext, ScriptTrait, ScriptMessageSender, 
         ScriptMessagePayload, ScriptMessageContext},
+
+    engine::ScriptedScene,
 };
 use std::path::Path;
 use gilrs as g;
@@ -98,7 +100,7 @@ pub struct Game {
     scene: Handle<Scene>,
     gils: Gilrs,
     players: HashMap<g::GamepadId, Handle<Node>>,
-    messager: Option<ScriptMessageSender>,
+    // messager: Option<ScriptMessageSender>,
 }
 
 impl Game {
@@ -111,7 +113,7 @@ impl Game {
             scene: Handle::NONE,
             gils: Gilrs::new().unwrap(),
             players: HashMap::new(),
-            messager: None,
+            //messager: None,
         }
     }
 }
@@ -122,6 +124,15 @@ impl Plugin for Game {
     }
 
     fn update(&mut self, context: &mut PluginContext) {
+
+        let mut messager: Option<&ScriptMessageSender> = None;
+
+        //get the scene messager... because that can't be done in on_scene_loaded apparently.
+        for scripted_scene in &context.script_processor.scripted_scenes {
+            if scripted_scene.handle == self.scene {
+                messager = Some(&scripted_scene.message_sender);
+            }
+        }
 
         //read in all new gilrs events
         while let Some(gEvent { id, event, time }) = self.gils.next_event() {
@@ -150,10 +161,10 @@ impl Plugin for Game {
                 },
                 //send the controller event to the player
                 _ => if let Some(player_handle) = self.players.get(&id) {
-                    if let Some(message_sender) = &self.messager {
+                    if let Some(message_sender) = &messager {
                         message_sender.send_to_target(player_handle.clone(), Message::Controller{event});
-                    }
-                }
+                    } else {println!("didn't get messager");}
+                } else {println!("didn't get player handle");}
                 // AxisChanged(axis, value, code) => {
                 //     if let Some(handle) = self.players.get(&id){
                 //         match axis {
@@ -208,15 +219,11 @@ impl Plugin for Game {
         scene: Handle<Scene>,
         data: &[u8],
         context: &mut PluginContext,
-    ) {    
+    ) {
         self.scene = scene;
 
-        //gets the message sender for the current scene. why is this such a pain??
-        for scripted_scene in &context.script_processor.scripted_scenes {
-            if scripted_scene.handle == self.scene {
-                self.messager = Option::Some(scripted_scene.message_sender.clone());
-            }
-        }
+        //reset messager to be set in the new scene
+        //self.messager = None;
 
     }
 }
@@ -253,7 +260,7 @@ impl ScriptTrait for Player {
 
     fn on_message(&mut self,
         message: &mut dyn ScriptMessagePayload,
-        _ctx: &mut ScriptMessageContext,
+        ctx: &mut ScriptMessageContext,
     ) {
         if let Some(message) = message.downcast_ref::<Message>(){
             match message {
@@ -261,7 +268,7 @@ impl ScriptTrait for Player {
                     match event {
                         // put the various controller events here, as well as calls to
                         //the correct class methods-- player has a class field now!
-                        AxisChanged(axis, value, _code) => (),
+                        AxisChanged(axis, value, _code) => self.class.moveplayer(axis, value, ctx),
                         _ => (),
                     }
 
