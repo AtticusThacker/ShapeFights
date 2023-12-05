@@ -22,12 +22,14 @@ use fyrox::{
             rectangle::{Rectangle, RectangleBuilder}, 
             rigidbody::{RigidBody, RigidBodyBuilder}, 
             collider::{ColliderShape, ColliderBuilder},
+            joint::{JointBuilder, JointParams, BallJoint},
         },
         node::{Node},
         Scene, SceneLoader, SceneContainer,
         graph::{Graph},
         base::BaseBuilder,
         transform::TransformBuilder,
+        rigidbody::RigidBodyType,
     },
     script::{ScriptContext, ScriptTrait, ScriptMessageSender, 
         ScriptMessagePayload, ScriptMessageContext},
@@ -64,6 +66,29 @@ fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     .with_rotation_locked(true)
     .with_lin_vel(Vector2::new(0.0, 0.0))
     .build(graph)
+}
+
+fn create_kinematic_rigid_body(graph: &mut Graph) -> Handle<Node> {
+    RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+            // Rigid body must have at least one collider
+            ColliderBuilder::new(BaseBuilder::new())
+                .with_shape(ColliderShape::cuboid(0.5, 0.5))
+                .with_sensor(true)
+                .build(graph),
+        ]))
+    .with_body_type(RigidBodyType::KinematicVelocityBased)
+    .build(graph)
+}
+
+fn create_joint(graph: &mut Graph, body1: Handle<Node>, body2: Handle<Node>) -> Handle<Node> {
+    JointBuilder::new(BaseBuilder::new())
+        .with_body1(body1)
+        .with_body2(body2)
+        .with_params(JointParams::BallJoint(BallJoint {
+            limits_enabled: true,
+            limits_angles: (0.0..1.0),
+        }))
+        .build(graph)
 }
 
 fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<Node> {
@@ -156,7 +181,7 @@ impl Plugin for Game {
                     self.players.insert(id, player_handle);
 
                     //adds script player to object
-                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], Player{class: Class::Fighter})
+                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], Player{class: Class::Rogue})
 
                 },
                 //send the controller event to the player
