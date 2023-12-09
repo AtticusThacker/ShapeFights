@@ -42,6 +42,7 @@ use gilrs::{
     Gilrs,
     Event as gEvent,
     EventType::*, 
+    ev::*,
 };
 use fyrox::script::Script;
 
@@ -294,6 +295,7 @@ impl ScriptTrait for Player {
                         // put the various controller events here, as well as calls to
                         //the correct class methods-- player has a class field now!
                         AxisChanged(axis, value, _code) => self.class.moveplayer(axis, value, ctx),
+                        ButtonPressed(button, _) => self.class.pressbutton(button, ctx),
                         _ => (),
                     }
 

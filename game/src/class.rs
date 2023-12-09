@@ -40,6 +40,7 @@ use gilrs::{
     EventType::*,
     EventType, 
     Axis,
+    Button,
 };
 use fyrox::script::Script;
 
@@ -80,6 +81,16 @@ impl Class {
             }
         } else {println!("didn't get rigidbody");} 
     }
+
+    pub fn pressbutton(&self, button: &Button, ctx: &mut ScriptMessageContext) {
+        if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+            match (button, self) {
+                (g::Button::South, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, Self::ROGSPD));},
+                _ => (),
+            }
+        }
+    }
+
 }
 
 fn main() {

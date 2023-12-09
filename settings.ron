@@ -316,25 +316,13 @@
     scene_settings: {
         "data/scene.rgs": (
             camera_settings: (
-                position: (3.1745007, -0.6165339, -3.0431738),
-                yaw: 0.079999864,
-                pitch: 0.15,
+                position: (3.1745007, -0.6165339, -3.0),
+                yaw: 0.0,
+                pitch: -1.5707964,
             ),
             node_infos: {
                 (
-                    index: 44,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 7,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 5,
+                    index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -346,13 +334,19 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 45,
+                    index: 47,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 48,
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 44,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -364,31 +358,13 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 46,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 4,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 3,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 2,
+                    index: 48,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -400,7 +376,31 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 47,
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 46,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 7,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 45,
                     generation: 1,
                 ): (
                     is_expanded: true,
