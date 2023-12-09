@@ -276,6 +276,7 @@ impl ScriptTrait for Player {
     // Put start logic - it is called when every other script is already initialized.
     fn on_start(&mut self, context: &mut ScriptContext) { 
         context.message_dispatcher.subscribe_to::<Message>(context.handle);
+        self.class.startup(context);
     }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)

@@ -1,4 +1,4 @@
-use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo};
+use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, RigidBodyType};
 use std::collections::HashMap;
 use fyrox::{
 
@@ -28,9 +28,12 @@ use fyrox::{
         graph::{Graph},
         base::BaseBuilder,
         transform::TransformBuilder,
+        //rigidbody::RigidBodyType,
     },
     script::{ScriptContext, ScriptTrait, ScriptMessageSender, 
         ScriptMessagePayload, ScriptMessageContext},
+
+    engine::ScriptedScene,
 };
 use std::path::Path;
 use gilrs as g;
@@ -63,6 +66,46 @@ impl Class {
     const ROGSPD:f32 = 2.0;
     const WIZSPD:f32 = 1.0;
     const FIGSPD:f32 = 1.0;
+
+    // const BARBWEP:ColliderShape = ColliderShape::cuboid(0.2, 0.7);
+    // const ROGWEP:ColliderShape = ColliderShape::cuboid(0.2, 0.7);
+    // const WIZWEP:ColliderShape = ColliderShape::cuboid(0.2, 0.7);
+    // const FIGWEP:ColliderShape = ColliderShape::cuboid(0.2, 0.7);
+
+    pub fn startup(&self, context: &mut ScriptContext) {
+        if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>() {
+            let weapontype = match self {
+                Class::Barbarian => ColliderShape::cuboid(0.2, 0.7),//Self::BARBWEP,
+                Class::Rogue => ColliderShape::cuboid(0.2, 0.7),//Self::ROGWEP,
+                Class::Wizard => ColliderShape::cuboid(0.2, 0.7),//Self::WIZWEP,
+                Class::Fighter => ColliderShape::cuboid(0.2, 0.7),//Self::FIGWEP,
+
+            };
+            let weapon = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+                // Rigid body must have at least one collider
+                ColliderBuilder::new(BaseBuilder::new())
+                    .with_shape(weapontype)
+                    .with_sensor(true)
+                    .build(&mut context.scene.graph),
+                RectangleBuilder::new(
+                    BaseBuilder::new().with_local_transform(
+                        TransformBuilder::new()
+                            // Size of the rectangle is defined only by scale.
+                            .with_local_scale(Vector3::new(1.0, 1.0, 1.0))
+                            .build(),
+                    ),
+                )
+                    .with_texture(context.resource_manager.request::<Texture, _>("data/rcircle.png"))
+                    .build(&mut context.scene.graph)
+                ]))
+            .with_body_type(RigidBodyType::KinematicPositionBased)
+            .build(&mut context.scene.graph);
+
+            context.scene.graph[weapon].set_visibility(false);
+
+
+        }
+    }
     
     pub fn moveplayer(&self, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
