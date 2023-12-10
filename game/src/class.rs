@@ -1,4 +1,6 @@
-use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, RigidBodyType};
+use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, 
+    RigidBodyType, PlayerState, 
+    PlayerState::{Attacking, Idle}, Player};
 use std::collections::HashMap;
 use fyrox::{
 
@@ -52,6 +54,7 @@ use gilrs::{
     EventType, 
     Axis,
     Button,
+    Button::RightTrigger,
 };
 use fyrox::script::Script;
 
@@ -70,17 +73,37 @@ pub enum Class {
 }
 
 impl Class {
+    //speed of normal movement
     const BARBSPD:f32 = 1.0;
     const ROGSPD:f32 = 2.0;
     const WIZSPD:f32 = 1.0;
     const FIGSPD:f32 = 1.0;
 
+    //shape of weapon (each number is half of the length of one of the sides)
     const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
     const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
     const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
     const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
 
-    pub fn startup(&self, context: &mut ScriptContext) {
+    //number of frames in melee attack
+    const BARBINT:i32 = 15;
+    const ROGINT:i32 = 15;
+    const WIZINT:i32 = 15;
+    const FIGINT:i32 = 15;
+
+    //frames of end-lag after melee attack
+    const BARBLAG:i32 = 12;
+    const ROGLAG:i32 = 12;
+    const WIZLAG:i32 = 12;
+    const FIGLAG:i32 = 12;
+
+    //number of radians the melee attack should move per frame
+    const BARBWEPSPD:f32 = std::f32::consts::PI/20.0;
+    const ROGWEPSPD:f32 = std::f32::consts::PI/20.0;
+    const WIZWEPSPD:f32 = std::f32::consts::PI/20.0;
+    const FIGWEPSPD:f32 = std::f32::consts::PI/20.0;
+
+    pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
         if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>() {
             let weapontype = match self {
                 Class::Barbarian => Self::BARBWEP,
@@ -110,7 +133,13 @@ impl Class {
             .with_body_type(RigidBodyType::KinematicPositionBased)
             .build(&mut context.scene.graph);
 
-            //context.scene.graph[weapon].set_visibility(false);
+
+            //set the player's weapon field to this node we've just made
+            script.weapon = Some(weapon.clone());
+
+
+
+            context.scene.graph[weapon.clone()].set_visibility(false);
             //set weapon to be a child of the player
             context.scene.graph.link_nodes(weapon, context.handle);
             //change the local position of the weapon
@@ -119,7 +148,7 @@ impl Class {
                 //the transform encodes essentially all position information
                 let mut starting_transform = Transform::identity();
                 //first, change its rotation angle to pi/4 radians (45 degrees)
-                starting_transform.set_rotation(UnitQuaternion::from_axis_angle(&axis, -std::f32::consts::FRAC_PI_4))
+                starting_transform.set_rotation(UnitQuaternion::from_axis_angle(&axis, -(std::f32::consts::FRAC_PI_2)))
                     //these should always be negatives of each other in x and y coords.
                     //this sets the position relative to the player
                     .set_position(Vector3::new(0.0,0.5,0.0))
@@ -128,6 +157,11 @@ impl Class {
                 
                 weapon.set_local_transform(starting_transform);
             }
+
+
+
+
+
 
             //NOTE: I don't think joints are the right thing for this
             // //create joint
@@ -177,13 +211,55 @@ impl Class {
 
 
 
-    pub fn pressbutton(&self, button: &Button, ctx: &mut ScriptMessageContext) {
-        if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
-            match (button, self) {
-                (g::Button::South, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, Self::ROGSPD));},
-                _ => (),
+    pub fn start_melee_attack(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
+        if let Idle = script.state{
+            script.state = Attacking(1);
+            if let Some(wephandle) = script.weapon {
+                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    weapon.set_visibility(true);
+                }
             }
         }
+    }
+
+    pub fn cont_attack(&self, script: &mut Player, frame: i32, ctx: &mut ScriptContext) {
+        //match for attack constants
+        let (interval, lag, spd) = match self {
+            Class::Barbarian => (Self::BARBINT, Self::BARBLAG, Self::BARBWEPSPD),
+            Class::Rogue => (Self::ROGINT, Self::ROGLAG, Self::ROGWEPSPD),
+            Class::Wizard => (Self::WIZINT, Self::WIZLAG, Self::WIZWEPSPD),
+            Class::Fighter => (Self::FIGINT, Self::FIGLAG, Self::FIGWEPSPD),
+        };
+
+        //while in the attack
+        if frame <= interval {
+            if let Some(wephandle) = script.weapon {
+                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    //rotate the weapon equal to the weapon speed constant
+                    let currotation = weapon.local_transform().rotation().clone();
+                    weapon.local_transform_mut().set_rotation(currotation.append_axisangle_linearized(
+                        &(&Vector3::z() * spd)));
+                }
+            }
+            //advance the current frame
+            script.state = Attacking(frame+1);
+        } else if frame < interval + lag {
+            //if we're in end lag, don't touch the weapon, just advance the frame
+            script.state = Attacking(frame+1);
+        } else {
+            //attack is over
+            script.state = Idle;
+            //make weapon invisible
+            if let Some(wephandle) = script.weapon {
+                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    weapon.set_visibility(false);
+                    //return weapon to starting rotation 
+                    weapon.local_transform_mut()
+                        .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+                }
+            }
+        }
+
     }
 
 }

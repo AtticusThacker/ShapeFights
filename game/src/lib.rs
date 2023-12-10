@@ -43,6 +43,7 @@ use gilrs::{
     Event as gEvent,
     EventType::*, 
     ev::*,
+    Button::{RightTrigger,},
 };
 use fyrox::script::Script;
 
@@ -182,7 +183,12 @@ impl Plugin for Game {
                     self.players.insert(id, player_handle);
 
                     //adds script player to object
-                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], Player{class: Class::Rogue})
+                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
+                        Player{
+                                class: Class::Rogue,
+                                state: PlayerState::Idle,
+                                weapon: None,
+                                })
 
                 },
                 //send the controller event to the player
@@ -255,9 +261,18 @@ impl Plugin for Game {
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
-struct Player{
-   class: Class 
+pub enum PlayerState {
+    #[default]
+    Idle,
+    //the field holds the number of frames the player is into the action
+    Attacking(i32),
+}
 
+#[derive(Visit, Reflect, Debug, Clone, Default)]
+pub struct Player{
+    class: Class,
+    state: PlayerState,
+    weapon: Option<Handle<Node>>,
 }
 
 impl_component_provider!(Player,);
@@ -276,14 +291,22 @@ impl ScriptTrait for Player {
     // Put start logic - it is called when every other script is already initialized.
     fn on_start(&mut self, context: &mut ScriptContext) { 
         context.message_dispatcher.subscribe_to::<Message>(context.handle);
-        self.class.startup(context);
+        self.class.clone().startup(self, context);
     }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
     fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {}
 
     // Called every frame at fixed rate of 60 FPS.
-    fn on_update(&mut self, context: &mut ScriptContext) {}
+    fn on_update(&mut self, context: &mut ScriptContext) {
+        match self.state {
+            PlayerState::Attacking(frame) => {self.class.clone().cont_attack(self, frame, context)},
+
+            _ => (),
+        }
+
+
+    }
 
     fn on_message(&mut self,
         message: &mut dyn ScriptMessagePayload,
@@ -296,7 +319,8 @@ impl ScriptTrait for Player {
                         // put the various controller events here, as well as calls to
                         //the correct class methods-- player has a class field now!
                         AxisChanged(axis, value, _code) => self.class.moveplayer(axis, value, ctx),
-                        ButtonPressed(button, _) => self.class.pressbutton(button, ctx),
+                        //must clone class for any method that takes a 'self' as well.
+                        ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
                         _ => (),
                     }
 
