@@ -10,7 +10,13 @@ use fyrox::{
         visitor::prelude::*, TypeUuidProvider,
         futures::executor::block_on,
     },
-    gui::message::UiMessage,
+    gui::message::{UiMessage, MessageDirection},
+    gui::{BuildContext, Orientation},
+    gui::widget::WidgetBuilder,
+    gui::UserInterface,
+    gui::wrap_panel::WrapPanelBuilder,
+    gui::progress_bar::{ProgressBarBuilder, ProgressBarMessage},
+    gui::UiNode,
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
     event::{ElementState, Event, WindowEvent},
@@ -36,6 +42,7 @@ use fyrox::{
 
     engine::ScriptedScene,
 };
+
 use std::path::Path;
 use gilrs as g;
 use gilrs::{
@@ -49,6 +56,7 @@ use fyrox::script::Script;
 
 pub mod class;
 pub mod messages;
+//pub mod WidgetBuilder;
 use messages::{
     Message,
     Message::{Controller},
@@ -221,6 +229,15 @@ impl Plugin for Game {
 
             
         }
+
+        fn change_progress(progress_bar: Handle<UiNode>, ui: &UserInterface) {
+            ui.send_message(ProgressBarMessage::progress(
+                progress_bar,
+                MessageDirection::ToWidget,
+                0.33,
+            ));
+        }
+        
     }
 
     fn on_os_event(
@@ -256,8 +273,24 @@ impl Plugin for Game {
 
         //reset messager to be set in the new scene
         //self.messager = None;
+        
+        // code from book to create wrap panel
+        fn create_wrap_panel(ctx: &mut BuildContext) -> Handle<UiNode> {
+            WrapPanelBuilder::new(WidgetBuilder::new())
+            .with_orientation(Orientation::Horizontal)
+            .build(ctx)
+        }
+        
+        fn create_progress_bar(ctx: &mut BuildContext) -> Handle<UiNode> {
+            ProgressBarBuilder::new(WidgetBuilder::new())
+                // Keep mind, that the progress is "normalized", which means that it is defined on
+                // [0..1] range, where 0 - no progress at all, 1 - maximum progress.
+                .with_progress(0.25)
+                .build(ctx)
+        }
 
     }
+
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
