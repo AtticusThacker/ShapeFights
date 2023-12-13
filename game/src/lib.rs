@@ -51,7 +51,7 @@ pub mod class;
 pub mod messages;
 use messages::{
     Message,
-    Message::{Controller},
+    Message::{Controller, Hit},
 };
 use class::Class;
 
@@ -325,6 +325,10 @@ impl ScriptTrait for Player {
                     }
 
                 },
+
+                Hit{damage: dam, knockback: knock} => {
+                    println!("took {} damage and {} knockback!", dam, knock);
+                }
                 _ => (),
             }
 

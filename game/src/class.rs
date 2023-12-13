@@ -1,7 +1,7 @@
 use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, 
     RigidBodyType, PlayerState, 
     PlayerState::{Attacking, Idle}, Player};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use fyrox::{
 
     core::{
@@ -60,7 +60,7 @@ use fyrox::script::Script;
 
 use crate::messages::{
     Message,
-    Message::{Controller},
+    Message::{Controller, Hit},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -102,6 +102,18 @@ impl Class {
     const ROGWEPSPD:f32 = std::f32::consts::PI/20.0;
     const WIZWEPSPD:f32 = std::f32::consts::PI/20.0;
     const FIGWEPSPD:f32 = std::f32::consts::PI/20.0;
+
+    //damage done by each class in melee; not implemented yet
+    const BARBDAM:i32 = 12;
+    const ROGDAM:i32 = 12;
+    const WIZDAM:i32 = 12;
+    const FIGDAM:i32 = 12;
+
+    //knockback done by each class in melee; not implemented yet
+    const BARBKNOCK:f32 = 12.0;
+    const ROGKNOCK:f32 = 12.0;
+    const WIZKNOCK:f32 = 12.0;
+    const FIGKNOCK:f32 = 12.0;
 
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
         if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>() {
@@ -224,16 +236,38 @@ impl Class {
 
     pub fn cont_attack(&self, script: &mut Player, frame: i32, ctx: &mut ScriptContext) {
         //match for attack constants
-        let (interval, lag, spd) = match self {
-            Class::Barbarian => (Self::BARBINT, Self::BARBLAG, Self::BARBWEPSPD),
-            Class::Rogue => (Self::ROGINT, Self::ROGLAG, Self::ROGWEPSPD),
-            Class::Wizard => (Self::WIZINT, Self::WIZLAG, Self::WIZWEPSPD),
-            Class::Fighter => (Self::FIGINT, Self::FIGLAG, Self::FIGWEPSPD),
+        let (interval, lag, spd, dam, knock) = match self {
+            Class::Barbarian => (Self::BARBINT, Self::BARBLAG, Self::BARBWEPSPD, Self::BARBDAM, Self::BARBKNOCK),
+            Class::Rogue => (Self::ROGINT, Self::ROGLAG, Self::ROGWEPSPD, Self::ROGDAM, Self::ROGKNOCK),
+            Class::Wizard => (Self::WIZINT, Self::WIZLAG, Self::WIZWEPSPD, Self::WIZDAM, Self::WIZKNOCK),
+            Class::Fighter => (Self::FIGINT, Self::FIGLAG, Self::FIGWEPSPD, Self::FIGDAM, Self::FIGKNOCK),
         };
 
         //while in the attack
         if frame <= interval {
             if let Some(wephandle) = script.weapon {
+                //check for a hit:
+                //find the collider of the weapon
+                if let Some((_,colnode)) = ctx.scene.graph.find(wephandle, &mut |c| c.is_collider2d()) {
+                    let collider = colnode.as_collider2d();
+                    // iterate over collisions
+                    for i in collider.intersects(&ctx.scene.graph.physics2d) {
+                        //for each active contact
+                        if i.has_any_active_contact {
+                            //find its parent
+                            if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
+                                if let Some(s) = p.as_rigid_body2d().script() {
+                                    if let Some(s) = s.cast::<Player>() {
+                                        println!("hit a player!");
+                                        ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
                 if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
                     //rotate the weapon equal to the weapon speed constant
                     let currotation = weapon.local_transform().rotation().clone();
