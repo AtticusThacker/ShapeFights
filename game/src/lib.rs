@@ -63,6 +63,28 @@ use messages::{
 };
 use class::Class;
 
+fn create_wrap_panel(ctx: &mut BuildContext) -> Handle<UiNode> {
+    WrapPanelBuilder::new(WidgetBuilder::new())
+    .with_orientation(Orientation::Horizontal)
+    .build(ctx)
+}
+
+fn create_progress_bar(ctx: &mut BuildContext) -> Handle<UiNode> {
+    ProgressBarBuilder::new(WidgetBuilder::new())
+        // Keep mind, that the progress is "normalized", which means that it is defined on
+        // [0..1] range, where 0 - no progress at all, 1 - maximum progress.
+        .with_progress(0.25)
+        .build(ctx)
+}
+
+fn change_progress(progress_bar: Handle<UiNode>, ui: &UserInterface) {
+    ui.send_message(ProgressBarMessage::progress(
+        progress_bar,
+        MessageDirection::ToWidget,
+        0.33,
+    ));
+}
+
 fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
             // Rigid body must have at least one collider
@@ -229,14 +251,6 @@ impl Plugin for Game {
 
             
         }
-
-        fn change_progress(progress_bar: Handle<UiNode>, ui: &UserInterface) {
-            ui.send_message(ProgressBarMessage::progress(
-                progress_bar,
-                MessageDirection::ToWidget,
-                0.33,
-            ));
-        }
         
     }
 
@@ -271,24 +285,16 @@ impl Plugin for Game {
     ) {
         self.scene = scene;
 
-        //reset messager to be set in the new scene
-        //self.messager = None;
-        
-        // code from book to create wrap panel
-        fn create_wrap_panel(ctx: &mut BuildContext) -> Handle<UiNode> {
-            WrapPanelBuilder::new(WidgetBuilder::new())
-            .with_orientation(Orientation::Horizontal)
-            .build(ctx)
-        }
-        
-        fn create_progress_bar(ctx: &mut BuildContext) -> Handle<UiNode> {
-            ProgressBarBuilder::new(WidgetBuilder::new())
-                // Keep mind, that the progress is "normalized", which means that it is defined on
-                // [0..1] range, where 0 - no progress at all, 1 - maximum progress.
-                .with_progress(0.25)
-                .build(ctx)
-        }
+        // this doesn't compile yet
 
+        //let ctx = BuildContext::from(context.user_interface);
+        let ctx = context.user_interface.build_ctx()
+        //create_wrap_panel(&mut context.user_interface.build_ctx());
+        WrapPanelBuilder::new(WidgetBuilder::new()
+            .with_child(
+                ProgressBarBuilder::new(WidgetBuilder::new())
+            ))
+            .build(ctx);
     }
 
 }
