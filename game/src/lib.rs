@@ -321,6 +321,8 @@ impl ScriptTrait for Player {
                         AxisChanged(axis, value, _code) => self.class.moveplayer(axis, value, ctx),
                         //must clone class for any method that takes a 'self' as well.
                         ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
+                        //projectiles
+                        ButtonPressed(LeftTrigger, _) =>self.class.clone().projectile(ctx),
                         _ => (),
                     }
 
