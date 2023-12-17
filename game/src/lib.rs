@@ -188,6 +188,7 @@ impl Plugin for Game {
                                 class: Class::Rogue,
                                 state: PlayerState::Idle,
                                 weapon: None,
+                                projectiles: Vec::new(),
                                 })
 
                 },
@@ -273,6 +274,7 @@ pub struct Player{
     class: Class,
     state: PlayerState,
     weapon: Option<Handle<Node>>,
+    projectiles: Vec<Handle<Node>>,
 }
 
 impl_component_provider!(Player,);
@@ -322,7 +324,7 @@ impl ScriptTrait for Player {
                         //must clone class for any method that takes a 'self' as well.
                         ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
                         //projectiles
-                        ButtonPressed(LeftTrigger, _) =>self.class.clone().projectile(ctx),
+                        ButtonPressed(LeftTrigger, _) => self.class.clone().projectiles(self, ctx),
                         _ => (),
                     }
 

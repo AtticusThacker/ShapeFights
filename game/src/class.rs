@@ -296,9 +296,7 @@ impl Class {
 
     }
 
-    pub fn projectile(&self, ctx: &mut ScriptMessageContext) {
-        //let proj = create_kinematic_rigid_body(&mut ctx.scene.graph, ctx);
-
+    pub fn projectiles(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
         let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
                     RectangleBuilder::new(
                         BaseBuilder::new().with_local_transform(
@@ -319,38 +317,15 @@ impl Class {
                 .with_body_type(RigidBodyType::KinematicVelocityBased)
                 .build(&mut ctx.scene.graph);
 
-
-
-
         ctx.scene.graph.link_nodes(proj, ctx.handle);
 
-        if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
-            rigid_body.set_lin_vel(Vector2::new(1.0, 0.0));
-        }
+        // if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
+        //     rigid_body.set_lin_vel(Vector2::new(1.0, 0.0));
+        // }
+
+        script.projectiles.push(proj);
     }
 
-}
-
-fn create_kinematic_rigid_body(graph: &mut Graph, ctx: &mut ScriptMessageContext) -> Handle<Node> {
-    RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
-        RectangleBuilder::new(
-            BaseBuilder::new().with_local_transform(
-                TransformBuilder::new()
-                    // Size of the rectangle is defined only by scale.
-                    .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
-                    .build(),
-            ),
-        )
-        .with_texture(ctx.resource_manager.request::<Texture, _>("data/rcircle.png"))
-        .build(graph),
-            // Rigid body must have at least one collider
-            ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(ColliderShape::cuboid(0.5, 0.5))
-                .with_sensor(true)
-                .build(graph),
-        ]))
-    .with_body_type(RigidBodyType::KinematicVelocityBased)
-    .build(graph)
 }
 
 fn main() {
