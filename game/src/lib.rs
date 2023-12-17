@@ -188,9 +188,8 @@ impl Plugin for Game {
                                 class: Class::Rogue,
                                 state: PlayerState::Idle,
                                 weapon: None,
-                                projectiles: Vec::new(),
+                                facing:Vector3::new(0.0,1.0,0.0),
                                 cooldown: 0,
-                                facing: Vector3::new(0.0,1.0,0.0),
                                 })
 
                 },
@@ -279,6 +278,7 @@ pub struct Player{
     projectiles: Vec<Handle<Node>>,
     cooldown: i32,
     facing: Vector3<f32>, //z axis should always be 0.0 here!
+    cooldown: i32,
 }
 
 impl_component_provider!(Player,);
@@ -313,6 +313,7 @@ impl ScriptTrait for Player {
 
         self.cooldown += 1;
         Class::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
+        self.cooldown += 1;
 
     }
 
