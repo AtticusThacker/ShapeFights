@@ -197,7 +197,7 @@ impl Class {
 
 
 
-    pub fn moveplayer(&self, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
+    pub fn moveplayer(&self, script: &mut Player, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
             match (axis, self) {
                 (g::Axis::LeftStickX, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
@@ -210,12 +210,16 @@ impl Class {
                 (g::Axis::LeftStickY, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
                 (g::Axis::LeftStickY, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
 
+                (g::Axis::RightStickX, _) if value.clone() != 0.0 => {script.facing.x = -*value;},
+                (g::Axis::RightStickY, _) if value.clone() != 0.0 => {script.facing.y = *value;},
                 _ => (),
             }
         } else {println!("didn't get rigidbody");} 
     }
 
-
+    pub fn update_look(facing: Vector3<f32>, node: &mut Node) {
+        node.local_transform_mut().set_rotation(UnitQuaternion::face_towards(&Vector3::z_axis(), &facing));
+    }
 
 
 

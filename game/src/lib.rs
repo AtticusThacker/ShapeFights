@@ -188,6 +188,7 @@ impl Plugin for Game {
                                 class: Class::Rogue,
                                 state: PlayerState::Idle,
                                 weapon: None,
+                                facing: Vector3::new(0.0,1.0,0.0),
                                 })
 
                 },
@@ -273,6 +274,7 @@ pub struct Player{
     class: Class,
     state: PlayerState,
     weapon: Option<Handle<Node>>,
+    facing: Vector3<f32>, //z axis should always be 0.0 here!
 }
 
 impl_component_provider!(Player,);
@@ -304,7 +306,7 @@ impl ScriptTrait for Player {
 
             _ => (),
         }
-
+        Class::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
 
     }
 
@@ -318,7 +320,7 @@ impl ScriptTrait for Player {
                     match event {
                         // put the various controller events here, as well as calls to
                         //the correct class methods-- player has a class field now!
-                        AxisChanged(axis, value, _code) => self.class.moveplayer(axis, value, ctx),
+                        AxisChanged(axis, value, _code) => self.class.clone().moveplayer(self, axis, value, ctx),
                         //must clone class for any method that takes a 'self' as well.
                         ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
                         _ => (),
