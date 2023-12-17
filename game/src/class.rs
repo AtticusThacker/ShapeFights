@@ -1,6 +1,7 @@
 use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, 
     RigidBodyType, PlayerState, 
-    PlayerState::{Attacking, Idle}, Player};
+    PlayerState::{Attacking, Idle},
+    Player, Projectile, set_script};
 use std::collections::{HashMap, HashSet};
 use fyrox::{
 
@@ -297,33 +298,72 @@ impl Class {
     }
 
     pub fn projectiles(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
-        let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
-                    RectangleBuilder::new(
-                        BaseBuilder::new().with_local_transform(
-                            TransformBuilder::new()
-                                // Size of the rectangle is defined only by scale.
-                                .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
-                                .build(),
-                        ),
+        // let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+        //             RectangleBuilder::new(
+        //                 BaseBuilder::new().with_local_transform(
+        //                     TransformBuilder::new()
+        //                         // Size of the rectangle is defined only by scale.
+        //                         .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
+        //                         .build(),
+        //                 ),
+        //             )
+        //             .with_texture(ctx.resource_manager.request::<Texture, _>("data/rcircle.png"))
+        //             .build(&mut ctx.scene.graph),
+        //                 // Rigid body must have at least one collider
+        //                 ColliderBuilder::new(BaseBuilder::new())
+        //                     .with_shape(ColliderShape::cuboid(0.5, 0.5))
+        //                     .with_sensor(true)
+        //                     .build(&mut ctx.scene.graph),
+        //             ]))
+        //         .with_body_type(RigidBodyType::KinematicVelocityBased)
+        //         .build(&mut ctx.scene.graph);
+
+        if script.cooldown > 30 {
+            let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
+            let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
+            trans.offset(dirvec.clone());
+
+            let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+                RectangleBuilder::new(
+                    BaseBuilder::new().with_local_transform(
+                        TransformBuilder::new()
+                            // Size of the rectangle is defined only by scale.
+                            .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
+                            .build()
                     )
-                    .with_texture(ctx.resource_manager.request::<Texture, _>("data/rcircle.png"))
+                )
+                    .with_texture(ctx.resource_manager.request::<Texture, _>("data/white_rectangle.png"))
                     .build(&mut ctx.scene.graph),
-                        // Rigid body must have at least one collider
-                        ColliderBuilder::new(BaseBuilder::new())
-                            .with_shape(ColliderShape::cuboid(0.5, 0.5))
-                            .with_sensor(true)
-                            .build(&mut ctx.scene.graph),
-                    ]))
-                .with_body_type(RigidBodyType::KinematicVelocityBased)
-                .build(&mut ctx.scene.graph);
+                // Rigid body must have at least one collider
+                ColliderBuilder::new(BaseBuilder::new())
+                    .with_shape(ColliderShape::cuboid(0.5, 0.5))
+                    .with_sensor(true)
+                    .build(&mut ctx.scene.graph),
+                
+                ])
+                .with_local_transform(trans)
+            )
+            .with_gravity_scale(0.0)
+            .with_can_sleep(false)
+            .build(&mut ctx.scene.graph);
 
-        ctx.scene.graph.link_nodes(proj, ctx.handle);
+            set_script(&mut ctx.scene.graph[proj.clone()], 
+                        Projectile{}
+                        );
 
-        // if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
-        //     rigid_body.set_lin_vel(Vector2::new(1.0, 0.0));
-        // }
 
-        script.projectiles.push(proj);
+
+
+
+            //ctx.scene.graph.link_nodes(proj, ctx.handle);
+
+            if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
+                rigid_body.set_lin_vel(Vector2::new(dirvec[0], dirvec[1]));
+            }
+
+            script.projectiles.push(proj);
+            script.cooldown = 0
+        }
     }
 
 }

@@ -43,7 +43,7 @@ use gilrs::{
     Event as gEvent,
     EventType::*, 
     ev::*,
-    Button::{RightTrigger,},
+    Button::{RightTrigger,LeftTrigger},
 };
 use fyrox::script::Script;
 
@@ -189,6 +189,7 @@ impl Plugin for Game {
                                 state: PlayerState::Idle,
                                 weapon: None,
                                 projectiles: Vec::new(),
+                                cooldown: 0,
                                 })
 
                 },
@@ -275,6 +276,7 @@ pub struct Player{
     state: PlayerState,
     weapon: Option<Handle<Node>>,
     projectiles: Vec<Handle<Node>>,
+    cooldown: i32,
 }
 
 impl_component_provider!(Player,);
@@ -307,6 +309,7 @@ impl ScriptTrait for Player {
             _ => (),
         }
 
+        self.cooldown += 1;
 
     }
 
@@ -338,6 +341,40 @@ impl ScriptTrait for Player {
 
         }
     }
+
+    // Returns unique script ID for serialization needs.
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
+}
+
+#[derive(Visit, Reflect, Debug, Clone, Default)]
+
+pub struct Projectile {
+
+}
+
+impl_component_provider!(Projectile,);
+
+impl TypeUuidProvider for Projectile {
+    // Returns unique script id for serialization needs.
+    fn type_uuid() -> Uuid {
+        uuid!("c5671d19-9f1a-4286-8486-add4ebaadaed")
+    }
+}
+
+impl ScriptTrait for Projectile {
+    // Called once at initialization.
+    fn on_init(&mut self, context: &mut ScriptContext) {}
+    
+    // Put start logic - it is called when every other script is already initialized.
+    fn on_start(&mut self, context: &mut ScriptContext) { }
+
+    // Called whenever there is an event from OS (mouse click, keypress, etc.)
+    fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {}
+
+    // Called every frame at fixed rate of 60 FPS.
+    fn on_update(&mut self, context: &mut ScriptContext) {}
 
     // Returns unique script ID for serialization needs.
     fn id(&self) -> Uuid {

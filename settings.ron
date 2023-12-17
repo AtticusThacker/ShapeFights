@@ -322,31 +322,7 @@
             ),
             node_infos: {
                 (
-                    index: 47,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 3,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 2,
+                    index: 4,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -358,13 +334,13 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 45,
+                    index: 5,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 5,
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -376,19 +352,25 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 48,
+                    index: 47,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
+                    index: 3,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 4,
+                    index: 46,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 43,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -400,7 +382,25 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 46,
+                    index: 45,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 48,
                     generation: 1,
                 ): (
                     is_expanded: true,
