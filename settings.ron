@@ -322,19 +322,38 @@
             ),
             node_infos: {
                 (
+<<<<<<< HEAD
                     index: 4,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+=======
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                     index: 6,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+<<<<<<< HEAD
                     index: 5,
+=======
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 45,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 47,
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -346,24 +365,51 @@
                     is_expanded: true,
                 ),
                 (
+<<<<<<< HEAD
                     index: 7,
+=======
+                    index: 46,
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+<<<<<<< HEAD
                     index: 47,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
+=======
                     index: 3,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 44,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 43,
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+<<<<<<< HEAD
                     index: 46,
                     generation: 1,
                 ): (
@@ -388,19 +434,29 @@
                     is_expanded: true,
                 ),
                 (
+=======
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                     index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+<<<<<<< HEAD
                     index: 2,
+=======
+                    index: 48,
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+<<<<<<< HEAD
                     index: 48,
+=======
+                    index: 7,
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                     generation: 1,
                 ): (
                     is_expanded: true,
