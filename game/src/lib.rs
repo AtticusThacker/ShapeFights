@@ -188,12 +188,8 @@ impl Plugin for Game {
                                 class: Class::Rogue,
                                 state: PlayerState::Idle,
                                 weapon: None,
-<<<<<<< HEAD
-                                projectiles: Vec::new(),
                                 cooldown: 0,
-=======
                                 facing: Vector3::new(0.0,1.0,0.0),
->>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                                 })
 
                 },
@@ -279,10 +275,8 @@ pub struct Player{
     class: Class,
     state: PlayerState,
     weapon: Option<Handle<Node>>,
-    projectiles: Vec<Handle<Node>>,
     cooldown: i32,
     facing: Vector3<f32>, //z axis should always be 0.0 here!
->>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
 }
 
 impl_component_provider!(Player,);
