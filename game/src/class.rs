@@ -324,8 +324,8 @@ impl Class {
 
         if script.cooldown > 30 {
             let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
-            let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
-            trans.offset(dirvec.clone());
+            // let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
+            trans.offset(script.facing.clone());
 
             let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
                 RectangleBuilder::new(
@@ -348,7 +348,9 @@ impl Class {
                 .with_local_transform(trans)
             )
             .with_gravity_scale(0.0)
+            .with_lin_vel(Vector2::new(script.facing[0],script.facing[1]))
             .with_can_sleep(false)
+            .with_ccd_enabled(true)
             .build(&mut ctx.scene.graph);
 
             set_script(&mut ctx.scene.graph[proj.clone()], 
@@ -361,11 +363,9 @@ impl Class {
 
             //ctx.scene.graph.link_nodes(proj, ctx.handle);
 
-            if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
-                rigid_body.set_lin_vel(Vector2::new(dirvec[0], dirvec[1]));
-            }
-
-            script.projectiles.push(proj);
+            // if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
+            //     rigid_body.set_lin_vel(Vector2::new(dirvec[0], dirvec[1]));
+            // }
             script.cooldown = 0
         }
     }

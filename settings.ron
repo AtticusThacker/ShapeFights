@@ -322,59 +322,13 @@
             ),
             node_infos: {
                 (
-<<<<<<< HEAD
-                    index: 6,
+                    index: 46,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 3,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 2,
-=======
-                    index: 4,
->>>>>>> e39e5fd (made funtioning projectiles)
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 5,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 7,
+                    index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -387,7 +341,12 @@
                 ),
                 (
                     index: 3,
-<<<<<<< HEAD
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -399,39 +358,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
-=======
->>>>>>> e39e5fd (made funtioning projectiles)
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 46,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 44,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 45,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
+                    index: 7,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -443,7 +370,37 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 48,
+                    index: 43,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 45,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 44,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
                     generation: 1,
                 ): (
                     is_expanded: true,
