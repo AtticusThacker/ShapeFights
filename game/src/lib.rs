@@ -9,11 +9,17 @@ use fyrox::{
         uuid::{uuid, Uuid},
         visitor::prelude::*, TypeUuidProvider,
         futures::executor::block_on,
+        color::Color,
     },
+    gui::brush::Brush,
+    gui::canvas::CanvasBuilder,
+    gui::button::ButtonBuilder,
     gui::message::{UiMessage, MessageDirection},
-    gui::{BuildContext, Orientation},
+    gui::{BuildContext, Orientation, HorizontalAlignment, VerticalAlignment},
     gui::widget::WidgetBuilder,
     gui::UserInterface,
+    gui::text::TextBuilder,
+    gui::border::BorderBuilder,
     gui::wrap_panel::WrapPanelBuilder,
     gui::progress_bar::{ProgressBarBuilder, ProgressBarMessage},
     gui::UiNode,
@@ -63,27 +69,61 @@ use messages::{
 };
 use class::Class;
 
-fn create_wrap_panel(ctx: &mut BuildContext) -> Handle<UiNode> {
-    WrapPanelBuilder::new(WidgetBuilder::new())
-    .with_orientation(Orientation::Horizontal)
-    .build(ctx)
+
+fn create_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
+    TextBuilder::new(WidgetBuilder::new())
+        .with_text(text)
+        .build(&mut ui.build_ctx())
 }
 
-fn create_progress_bar(ctx: &mut BuildContext) -> Handle<UiNode> {
-    ProgressBarBuilder::new(WidgetBuilder::new())
-        // Keep mind, that the progress is "normalized", which means that it is defined on
-        // [0..1] range, where 0 - no progress at all, 1 - maximum progress.
-        .with_progress(0.25)
-        .build(ctx)
+fn create_centered_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
+    TextBuilder::new(WidgetBuilder::new())
+        .with_horizontal_text_alignment(HorizontalAlignment::Center)
+        .with_vertical_text_alignment(VerticalAlignment::Center)
+    .with_text(text)
+    .build(&mut ui.build_ctx())
 }
 
-fn change_progress(progress_bar: Handle<UiNode>, ui: &UserInterface) {
-    ui.send_message(ProgressBarMessage::progress(
-        progress_bar,
-        MessageDirection::ToWidget,
-        0.33,
-    ));
+// fn text_color_background(ui: &mut UserInterface, text: &str, color: const) -> Handle<UiNode> {
+//     let text_widget =
+//         TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::color)))
+//             .with_text(text)
+//             .build(&mut ui.build_ctx());
+//     BorderBuilder::new(
+//         WidgetBuilder::new().with_desired_position(Vector2::new(100.0, 200.0))
+//             .with_child(text_widget) // <-- Text is now a child of the border
+//             .with_background(Brush::Solid(Color::opaque(50, 50, 50))),
+//     )
+//     .build(&mut ui.build_ctx())
+// }
+
+
+fn create_text_with_background_1(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
+    let text_widget =
+        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::RED)))
+            .with_text(text)
+            .build(&mut ui.build_ctx());
+    BorderBuilder::new(
+        WidgetBuilder::new().with_desired_position(Vector2::new(100.0, 200.0))
+            .with_child(text_widget) // <-- Text is now a child of the border
+            .with_background(Brush::Solid(Color::opaque(50, 50, 50))),
+    )
+    .build(&mut ui.build_ctx())
 }
+
+fn create_text_with_background_2(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
+    let text_widget =
+        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::GREEN)))
+            .with_text(text)
+            .build(&mut ui.build_ctx());
+    BorderBuilder::new(
+        WidgetBuilder::new().with_desired_position(Vector2::new(200.0, 200.0))
+            .with_child(text_widget) // <-- Text is now a child of the border
+            .with_background(Brush::Solid(Color::opaque(50, 50, 50))),
+    )
+    .build(&mut ui.build_ctx())
+}
+
 
 fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
@@ -227,23 +267,7 @@ impl Plugin for Game {
                         message_sender.send_to_target(player_handle.clone(), Message::Controller{event});
                     } else {println!("didn't get messager");}
                 } else {println!("didn't get player handle");}
-                // AxisChanged(axis, value, code) => {
-                //     if let Some(handle) = self.players.get(&id){
-                //         match axis {
-                //             g::Axis::LeftStickX => {// change the x velocity of the right player
-                //                 if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
-                //                     player.set_lin_vel(Vector2::new(-value, player.lin_vel().y));
-                //                 }
-                //             },
-                //             g::Axis::LeftStickY => {// change the x velocity of the right player
-                //                 if let Some(player) = context.scenes[self.scene].graph[handle.clone()].cast_mut::<RigidBody>() {
-                //                     player.set_lin_vel(Vector2::new(player.lin_vel().x, value));
-                //                 }
-                //             },
-                //             _ => (), //for now
-                //         }
-                //     }
-                // },
+                
                 _ => (), //for now
 
             }
@@ -285,16 +309,12 @@ impl Plugin for Game {
     ) {
         self.scene = scene;
 
-        // this doesn't compile yet
+        let ctx = &mut context.user_interface;
+        //let ui = &mut context.user_interface;
+        let text: &str = "this works?";
 
-        //let ctx = BuildContext::from(context.user_interface);
-        let ctx = context.user_interface.build_ctx()
-        //create_wrap_panel(&mut context.user_interface.build_ctx());
-        WrapPanelBuilder::new(WidgetBuilder::new()
-            .with_child(
-                ProgressBarBuilder::new(WidgetBuilder::new())
-            ))
-            .build(ctx);
+        create_text_with_background_1(ctx, text);
+        create_text_with_background_2(ctx, text);
     }
 
 }
