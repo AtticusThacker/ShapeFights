@@ -16,7 +16,7 @@ use fyrox::{
     event::{ElementState, Event, WindowEvent},
     keyboard::KeyCode,
     impl_component_provider,
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource},
     scene::{
         dim2::{
             rectangle::{Rectangle, RectangleBuilder}, 

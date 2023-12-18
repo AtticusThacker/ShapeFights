@@ -116,7 +116,14 @@ impl Class {
     const WIZKNOCK:f32 = 12.0;
     const FIGKNOCK:f32 = 12.0;
 
+    //ranged attack speed scalar
+    const RATKSPD:f32 = 3.0;
+
+    //ranged attack speed cooldown (in frames)
+    const RCOOL:i32 = 60;
+
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
+        
         if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>() {
             let weapontype = match self {
                 Class::Barbarian => Self::BARBWEP,
@@ -322,7 +329,7 @@ impl Class {
         //         .with_body_type(RigidBodyType::KinematicVelocityBased)
         //         .build(&mut ctx.scene.graph);
 
-        if script.cooldown > 30 {
+        if script.cooldown > Self::RCOOL {
             let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
             // let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
             trans.offset(script.facing.clone());
@@ -332,7 +339,7 @@ impl Class {
                     BaseBuilder::new().with_local_transform(
                         TransformBuilder::new()
                             // Size of the rectangle is defined only by scale.
-                            .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
+                            .with_local_scale(Vector3::new(0.4, 0.6, 1.0))
                             .build()
                     )
                 )
@@ -340,7 +347,7 @@ impl Class {
                     .build(&mut ctx.scene.graph),
                 // Rigid body must have at least one collider
                 ColliderBuilder::new(BaseBuilder::new())
-                    .with_shape(ColliderShape::cuboid(0.5, 0.5))
+                    .with_shape(ColliderShape::cuboid(0.4, 0.6))
                     .with_sensor(true)
                     .build(&mut ctx.scene.graph),
                 
@@ -348,7 +355,7 @@ impl Class {
                 .with_local_transform(trans)
             )
             .with_gravity_scale(0.0)
-            .with_lin_vel(Vector2::new(script.facing[0],script.facing[1]))
+            .with_lin_vel(Vector2::new(script.facing[0]*Self::RATKSPD,script.facing[1]*Self::RATKSPD))
             .with_can_sleep(false)
             .with_ccd_enabled(true)
             .build(&mut ctx.scene.graph);
