@@ -188,8 +188,12 @@ impl Plugin for Game {
                                 class: Class::Rogue,
                                 state: PlayerState::Idle,
                                 weapon: None,
-                                facing:Vector3::new(0.0,1.0,0.0),
+<<<<<<< HEAD
+                                projectiles: Vec::new(),
                                 cooldown: 0,
+=======
+                                facing: Vector3::new(0.0,1.0,0.0),
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
                                 })
 
                 },
@@ -278,7 +282,7 @@ pub struct Player{
     projectiles: Vec<Handle<Node>>,
     cooldown: i32,
     facing: Vector3<f32>, //z axis should always be 0.0 here!
-    cooldown: i32,
+>>>>>>> 1ebd931 (implement rotation! add chevron to indicate facing next)
 }
 
 impl_component_provider!(Player,);
@@ -313,7 +317,6 @@ impl ScriptTrait for Player {
 
         self.cooldown += 1;
         Class::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
-        self.cooldown += 1;
 
     }
 
