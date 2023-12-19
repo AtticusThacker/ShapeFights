@@ -768,16 +768,8 @@ impl Plugin for Game {
             //     self.start_button_handle => (), //START THE GAME
             // }
 
-            if message.destination() == self.class_button_handle {
-                create_window(context.user_interface);
-            }
-            if message.destination() == self.start_button_handle {
-                
-                //START THE GAME
-                //set the buttons to invisible (if theyre still there)
-                //self.start_button_handle.set_visibility(false); //doesnt work
-                
-            }
+            println!("{}", message.destination());
+            println!("{}", self.p1fig);
             if message.destination() == self.p1fig {
                 self.playerclasses.insert(self.idList[0], Class::Fighter);
             }
@@ -826,6 +818,17 @@ impl Plugin for Game {
             if message.destination() == self.p4wiz {
                 self.playerclasses.insert(self.idList[3], Class::Wizard);
             }
+            if message.destination() == self.class_button_handle {
+                create_window(context.user_interface);
+            }
+            if message.destination() == self.start_button_handle {
+                
+                //START THE GAME
+                //set the buttons to invisible (if theyre still there)
+                //self.start_button_handle.set_visibility(false); //doesnt work
+                
+            }
+            
 
         }
     }
