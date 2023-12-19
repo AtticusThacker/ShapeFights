@@ -322,13 +322,13 @@
             ),
             node_infos: {
                 (
-                    index: 2,
+                    index: 43,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 6,
+                    index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -340,13 +340,25 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 4,
+                    index: 47,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 44,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -364,19 +376,13 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 44,
+                    index: 6,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 47,
+                    index: 2,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -394,13 +400,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 3,
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,

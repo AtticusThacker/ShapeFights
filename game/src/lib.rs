@@ -1,4 +1,4 @@
-//! Game project.
+//! Game project
 use std::collections::HashMap;
 use std::vec::Vec;
 use fyrox::{
@@ -27,7 +27,7 @@ use fyrox::{
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
     event::{ElementState, Event, WindowEvent},
-    keyboard::KeyCode,
+    //keyboard::KeyCode,
     impl_component_provider,
     resource::texture::Texture,
     scene::{
@@ -70,7 +70,6 @@ use messages::{
 };
 use class::Class;
 
-
 fn create_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
     TextBuilder::new(WidgetBuilder::new())
         .with_text(text)
@@ -85,24 +84,15 @@ fn create_centered_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
     .build(&mut ui.build_ctx())
 }
 
-// fn text_color_background(ui: &mut UserInterface, text: &str, color: const) -> Handle<UiNode> {
-//     let text_widget =
-//         TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::color)))
-//             .with_text(text)
-//             .build(&mut ui.build_ctx());
-//     BorderBuilder::new(
-//         WidgetBuilder::new().with_desired_position(Vector2::new(100.0, 200.0))
-//             .with_child(text_widget) // <-- Text is now a child of the border
-//             .with_background(Brush::Solid(Color::opaque(50, 50, 50))),
-//     )
-//     .build(&mut ui.build_ctx())
-// }
 
 
 // the functions fyrox gives us to create text were not great so i made my own
 // each of the next 4 functions create text with a background (like highlighted)
 // there's 4, one for each possible player, each with a different color
 // also they take in floating point numbers as parameters for position
+// default visibility is set to false!!
+
+// player 1
 fn create_text_with_background_1(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
     let text_widget =
         TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
@@ -111,11 +101,13 @@ fn create_text_with_background_1(ui: &mut UserInterface, text: &str, x: f32, y: 
     BorderBuilder::new(
         WidgetBuilder::new().with_desired_position(Vector2::new(x,y))
             .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(66, 245, 158))), // green
+            .with_background(Brush::Solid(Color::opaque(66, 245, 158))) // green
+            .with_visibility(false),
     )
     .build(&mut ui.build_ctx())
 }
 
+// player 2
 fn create_text_with_background_2(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
     let text_widget =
         TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
@@ -124,11 +116,13 @@ fn create_text_with_background_2(ui: &mut UserInterface, text: &str, x: f32, y: 
     BorderBuilder::new(
         WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
             .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(66, 167, 245))), // blue
+            .with_background(Brush::Solid(Color::opaque(66, 167, 245))) // blue
+            .with_visibility(false),
     )
     .build(&mut ui.build_ctx())
 }
 
+// player 3
 fn create_text_with_background_3(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
     let text_widget =
         TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
@@ -137,11 +131,13 @@ fn create_text_with_background_3(ui: &mut UserInterface, text: &str, x: f32, y: 
     BorderBuilder::new(
         WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
             .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(194, 136, 252))), // purple
+            .with_background(Brush::Solid(Color::opaque(194, 136, 252))) // purple
+            .with_visibility(false),
     )
     .build(&mut ui.build_ctx())
 }
 
+// player 4
 fn create_text_with_background_4(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
     let text_widget =
         TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
@@ -150,7 +146,8 @@ fn create_text_with_background_4(ui: &mut UserInterface, text: &str, x: f32, y: 
     BorderBuilder::new(
         WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
             .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(250, 135, 215))), // pink
+            .with_background(Brush::Solid(Color::opaque(250, 135, 215))) // pink
+            .with_visibility(false),
     )
     .build(&mut ui.build_ctx())
 }
@@ -228,7 +225,7 @@ pub struct Game {
     scene: Handle<Scene>,
     gils: Gilrs,
     players: HashMap<g::GamepadId, Handle<Node>>,
-    idList: Vec::<GamepadId>,
+    id_list: Vec::<GamepadId>,
 }
 use gilrs::GamepadId;
 impl Game {
@@ -241,7 +238,7 @@ impl Game {
             scene: Handle::NONE,
             gils: Gilrs::new().unwrap(),
             players: HashMap::new(),
-            idList: Vec::<GamepadId>::new(),
+            id_list: Vec::<GamepadId>::new(),
         }
 
     }
@@ -286,6 +283,8 @@ impl Plugin for Game {
                     context.scenes[self.scene].graph.link_nodes(sprite_handle, player_handle);
                     //add the player to the game's struct
                     self.players.insert(id, player_handle);
+                    // add player ID to vector of IDs
+                    self.id_list.push(id);
 
                     //adds script player to object
                     set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
@@ -307,62 +306,135 @@ impl Plugin for Game {
                 _ => (), //for now
 
             }  
-        }
-
-        let ctx = &mut context.user_interface;
+        }  
 
         // changes the number of xs in the health status bar
         // this has not been tested yet so idk if it works
+        let ctx = &mut context.user_interface;
+        let health_txt = "health:";
+        let mut text = "".to_string();
 
+        // create text/border widgets with visibility off
+        let player_text1: Handle<UiNode> = create_text_with_background_1(ctx, health_txt, 100.0, 1000.0);
+        let player_text2: Handle<UiNode> = create_text_with_background_2(ctx, health_txt, 300.0, 1000.0);
+        let player_text3: Handle<UiNode> = create_text_with_background_3(ctx, health_txt, 500.0, 1000.0);
+        let player_text4: Handle<UiNode> = create_text_with_background_4(ctx, health_txt, 700.0, 1000.0);
+
+        let mut text1 = create_text_with_background_1(ctx, text.as_str(), 175.0, 1000.0);
+        let mut text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
+        let mut text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
+        let mut text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
+
+        // for player 1
         if self.players.len() > 0 {
-            let h = self.players.get(&self.idList[0]).health;
-            let mut text: &str = "";
+            // creates health variable here
+            let mut h: u32 = 10;
+
+            ctx.build_ctx()[player_text1.clone()].set_visibility(true);
+
+            // gets the player handle from hash map for player 1
+            if let Some(player_script) = self.players.get(&self.id_list[0]) {
+                // gets the node
+                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                // gets the actual player object
+                let node2 = node1.script_mut().expect("error").cast_mut::<Player>().expect("error");
+                // sets health variable to player's health
+                h = node2.health;
+            }
+
+            // creates text variable to be passed into text function
+            let mut text: String = "".to_string();
             let mut i = 0;
+            // makes the text variable have the number of xs corresponding to health value
             while i < h {
-                text = &(text.to_owned() + "x");
+                text = text.to_owned() + "x";
                 i = i+1;
             }
-            create_text_with_background_1(ctx, text, 175.0, 1000.0);
 
+            text1 = create_text_with_background_1(ctx, text.as_str(), 175.0, 1000.0);
+            ctx.build_ctx()[text1.clone()].set_visibility(true);
         }
 
+        // player 2
         if self.players.len() > 1 {
-            let h = self.players.get(&self.idList[1]).health;
-            let mut text: &str = "";
+            // creates health variable here
+            let mut h: u32 = 10;
+            ctx.build_ctx()[player_text2.clone()].set_visibility(true);
+            // gets the player handle from hash map for player 1
+            if let Some(player_script) = self.players.get(&self.id_list[1]) {
+                // gets the node
+                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                // gets the actual player object
+                let node2 = node1.script().unwrap().cast::<Player>().unwrap();
+                // sets health variable to player's health
+                h = node2.health;
+            }
+
+            // creates text variable to be passed into text function
+            let mut text: String = "".to_string();
             let mut i = 0;
+            // makes the text variable have the number of xs corresponding to health value
             while i < h {
-                text = &(text.to_owned() + "x");
+                text = text.to_owned() + "x";
                 i = i+1;
             }
-            create_text_with_background_2(ctx, text, 375.0, 1000.0);
-
+            text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
         }
 
+        // player 3
         if self.players.len() > 2 {
-            let h = self.players.get(&self.idList[2]).health;
-            let mut text: &str = "";
+            // creates health variable here
+            let mut h: u32 = 10;
+            ctx.build_ctx()[player_text3.clone()].set_visibility(true);
+            // let playerText3: Handle<UiNode> = create_text_with_background_2(ctx, health_txt, 500.0, 1000.0);
+            // gets the player handle from hash map for player 1
+            if let Some(player_script) = self.players.get(&self.id_list[2]) {
+                // gets the node
+                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                // gets the actual player object
+                let node2 = node1.script().unwrap().cast::<Player>().unwrap();
+                // sets health variable to player's health
+                h = node2.health;
+            }
+
+            // creates text variable to be passed into text function
+            let mut text: String = "".to_string();
             let mut i = 0;
+            // makes the text variable have the number of xs corresponding to health value
             while i < h {
-                text = &(text.to_owned() + "x");
+                text = text.to_owned() + "x";
                 i = i+1;
             }
-            create_text_with_background_3(ctx, text, 575.0, 1000.0);
 
+            text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
         }
 
+        // player 4
         if self.players.len() > 3 {
-            let h = self.players.get(&self.idList[3]).health;
-            let mut text: &str = "";
+            // creates health variable here
+            let mut h = 10;
+            ctx.build_ctx()[player_text4.clone()].set_visibility(true);
+            // gets the player handle from hash map for player 1
+            if let Some(player_script) = self.players.get(&self.id_list[3]) {
+                // gets the node
+                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                // gets the actual player object
+                let node2 = node1.script().unwrap().cast::<Player>().unwrap();
+                // sets health variable to player's health
+                h = node2.health;
+            }
+
+            // creates text variable to be passed into text function
+            let mut text: String = "".to_string();
             let mut i = 0;
+            // makes the text variable have the number of xs corresponding to health value
             while i < h {
-                text = &(text.to_owned() + "x");
+                text = text.to_owned() + "x";
                 i = i+1;
             }
-            create_text_with_background_4(ctx, text, 775.0, 1000.0);
 
+            text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
         }
-        
-        
     }
 
     fn on_os_event(
@@ -397,41 +469,7 @@ impl Plugin for Game {
         self.scene = scene;
 
         let ctx = &mut context.user_interface;
-        //let ui = &mut context.user_interface;
-        let text: &str = "health: ";
-
-        // this hasnt been tested yet since i don't have a controller
-
-        // creates text health indicators for number of players
-        // each has different color and position
-        let mut playerText1: Handle<UiNode>;
-        let mut playerText2: Handle<UiNode>;
-        let mut playerText3: Handle<UiNode>;
-        let mut playerText4: Handle<UiNode>;
-        if self.players.len() > 0 {
-            playerText1 = create_text_with_background_1(ctx, text, 100.0, 1000.0);
-            create_text_with_background_1(ctx, "xxxxxxxxxx", 175.0, 1000.0);
-        }
-
-        if self.players.len() > 1 {
-            playerText2 = create_text_with_background_2(ctx, text, 300.0, 1000.0);
-            create_text_with_background_2(ctx, "xxxxxxxxxx", 375.0, 1000.0);
-        }
-       
-       if self.players.len() > 2 {
-            playerText3 = create_text_with_background_3(ctx, text, 500.0, 1000.0);
-            create_text_with_background_3(ctx, "xxxxxxxxxx", 575.0, 1000.0);
-        }
-        
-        if self.players.len() > 3 {
-            playerText4 = create_text_with_background_4(ctx, text, 700.0, 1000.0);
-            create_text_with_background_4(ctx, "xxxxxxxxxx", 775.0, 1000.0);
-        }
-
-        for key in self.players.keys() {
-            self.idList.push(*key);
-        }
-    }
+     }
 
 }
 
