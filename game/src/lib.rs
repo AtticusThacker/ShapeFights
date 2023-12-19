@@ -10,7 +10,20 @@ use fyrox::{
         visitor::prelude::*, TypeUuidProvider,
         futures::executor::block_on,
     },
-    gui::message::UiMessage,
+    gui::{
+        UiNode,
+        UserInterface,
+        message::UiMessage,
+        button::{
+            ButtonBuilder,
+            ButtonMessage,
+        },
+        window::{WindowBuilder, WindowTitle}, 
+        widget::WidgetBuilder,
+        text::TextBuilder,
+        stack_panel::StackPanelBuilder,
+        HorizontalAlignment,
+    },
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
     event::{ElementState, Event, WindowEvent},
@@ -27,7 +40,7 @@ use fyrox::{
         node::{Node},
         Scene, SceneLoader, SceneContainer,
         graph::{Graph},
-        base::BaseBuilder,
+        base::{BaseBuilder},
         transform::TransformBuilder,
         rigidbody::RigidBodyType,
     },
@@ -127,8 +140,483 @@ pub struct Game {
     scene: Handle<Scene>,
     gils: Gilrs,
     players: HashMap<g::GamepadId, Handle<Node>>,
+    playerclasses: HashMap<g::GamepadId, class::Class>,
+    idList: Vec::<g::GamepadId>,
+    start_button_handle: Handle<UiNode>,
+    class_button_handle: Handle<UiNode>,
+
+    p1fig: Handle<UiNode>,
+    p1barb: Handle<UiNode>,
+    p1rog: Handle<UiNode>,
+    p1wiz: Handle<UiNode>,
+
+    p2fig: Handle<UiNode>,
+    p2barb: Handle<UiNode>,
+    p2rog: Handle<UiNode>,
+    p2wiz: Handle<UiNode>,
+
+    p3fig: Handle<UiNode>,
+    p3barb: Handle<UiNode>,
+    p3rog: Handle<UiNode>,
+    p3wiz: Handle<UiNode>,
+
+    p4fig: Handle<UiNode>,
+    p4barb: Handle<UiNode>,
+    p4rog: Handle<UiNode>,
+    p4wiz: Handle<UiNode>,
+    
     // messager: Option<ScriptMessageSender>,
 }
+
+fn start_button(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(200.0)
+        .with_height(60.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Left),
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Start Game  ")
+            .with_horizontal_text_alignment(HorizontalAlignment::Right)
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn class_button(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(60.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Class Select")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn create_window(ui: &mut UserInterface) {
+    WindowBuilder::new(
+        WidgetBuilder::new()
+            .with_desired_position(Vector2::new(300.0, 0.0))
+            .with_width(300.0),
+    )
+    .with_content(
+        StackPanelBuilder::new(
+            WidgetBuilder::new()
+                .with_child(
+                    WindowBuilder::new(
+                        WidgetBuilder::new()
+                            .with_desired_position(Vector2::new(300.0, 0.0))
+                            .with_width(300.0),
+                    )
+                    .with_content(
+                        StackPanelBuilder::new(
+                            WidgetBuilder::new()
+                                .with_child(
+                                    p1fig(ui)
+                                )
+                                .with_child(
+                                    p1rog(ui)
+                                )
+                                .with_child(
+                                    p1barb(ui)
+                                )
+                                .with_child(
+                                    p1wiz(ui)
+                                )
+                        )
+                            .build(&mut ui.build_ctx())
+                    )
+                    .with_title(WindowTitle::text("Player 1"))
+                    .can_close(false)
+                    .can_minimize(false)
+                    .open(true)
+                    .can_resize(false)
+                    .build(&mut ui.build_ctx())
+                )
+                .with_child(
+                    WindowBuilder::new(
+                        WidgetBuilder::new()
+                            .with_desired_position(Vector2::new(300.0, 0.0))
+                            .with_width(300.0),
+                    )
+                    .with_content(
+                        StackPanelBuilder::new(
+                            WidgetBuilder::new()
+                                .with_child(
+                                    p2fig(ui)
+                                )
+                                .with_child(
+                                    p2rog(ui)
+                                )
+                                .with_child(
+                                    p2barb(ui)
+                                )
+                                .with_child(
+                                    p2wiz(ui)
+                                )
+                        )
+                            .build(&mut ui.build_ctx())
+                    )
+                    .with_title(WindowTitle::text("Player 2"))
+                    .can_close(false)
+                    .can_minimize(false)
+                    .open(true)
+                    .can_resize(false)
+                    .build(&mut ui.build_ctx())
+                )
+                .with_child(
+                    WindowBuilder::new(
+                        WidgetBuilder::new()
+                            .with_desired_position(Vector2::new(300.0, 0.0))
+                            .with_width(300.0),
+                    )
+                    .with_content(
+                        StackPanelBuilder::new(
+                            WidgetBuilder::new()
+                                .with_child(
+                                    p3fig(ui)
+                                )
+                                .with_child(
+                                    p3rog(ui)
+                                )
+                                .with_child(
+                                    p3barb(ui)
+                                )
+                                .with_child(
+                                    p3wiz(ui)
+                                )
+                        )
+                            .build(&mut ui.build_ctx())
+                    )
+                    .with_title(WindowTitle::text("Player 3"))
+                    .can_close(false)
+                    .can_minimize(false)
+                    .open(true)
+                    .can_resize(false)
+                    .build(&mut ui.build_ctx())
+                )
+                .with_child(
+                    WindowBuilder::new(
+                        WidgetBuilder::new()
+                            .with_desired_position(Vector2::new(300.0, 0.0))
+                            .with_width(300.0),
+                    )
+                    .with_content(
+                        StackPanelBuilder::new(
+                            WidgetBuilder::new()
+                                .with_child(
+                                    p4fig(ui)
+                                )
+                                .with_child(
+                                    p4rog(ui)
+                                )
+                                .with_child(
+                                    p4barb(ui)
+                                )
+                                .with_child(
+                                    p4wiz(ui)
+                                )
+                        )
+                            .build(&mut ui.build_ctx())
+                    )
+                    .with_title(WindowTitle::text("Player 4"))
+                    .can_close(false)
+                    .can_minimize(false)
+                    .open(true)
+                    .can_resize(false)
+                    .build(&mut ui.build_ctx())
+                )
+        )
+            .build(&mut ui.build_ctx())
+    )
+    .with_title(WindowTitle::text("Select Your Classes"))
+    .can_close(true)
+    .can_minimize(true)
+    .open(true)
+    .can_resize(false)
+    .build(&mut ui.build_ctx());
+}
+
+fn p1fig(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Fighter")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p2fig(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Fighter")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p3fig(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Fighter")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p4fig(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Fighter")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p1barb(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Barbarian")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p2barb(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Barbarian")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p3barb(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Barbarian")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p4barb(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Barbarian")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p1rog(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Rogue")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p2rog(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Rogue")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p3rog(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Rogue")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p4rog(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Rogue")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p1wiz(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Wizard")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p2wiz(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Wizard")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p3wiz(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Wizard")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn p4wiz(ui: &mut UserInterface) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_width(100.0)
+        .with_height(20.0),
+        //.with_horizontal_alignment(HorizontalAlignment::Right),
+    
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text("Wizard")
+            
+            .build(&mut ui.build_ctx()),
+    )
+    .build(&mut ui.build_ctx())
+}
+
 
 impl Game {
     pub fn new(scene_path: Option<&str>, context: PluginContext) -> Self {
@@ -140,6 +628,33 @@ impl Game {
             scene: Handle::NONE,
             gils: Gilrs::new().unwrap(),
             players: HashMap::new(),
+            playerclasses: HashMap::new(),
+            idList: Vec::new(),
+
+            p1fig: p1fig(context.user_interface),
+            p1barb: p1barb(context.user_interface),
+            p1rog: p1rog(context.user_interface),
+            p1wiz: p1wiz(context.user_interface),
+
+            p2fig: p2fig(context.user_interface),
+            p2barb: p2barb(context.user_interface),
+            p2rog: p2rog(context.user_interface),
+            p2wiz: p2wiz(context.user_interface),
+
+            p3fig: p3fig(context.user_interface),
+            p3barb: p3barb(context.user_interface),
+            p3rog: p3rog(context.user_interface),
+            p3wiz: p3wiz(context.user_interface),
+
+            p4fig: p4fig(context.user_interface),
+            p4barb: p4barb(context.user_interface),
+            p4rog: p4rog(context.user_interface),
+            p4wiz: p4wiz(context.user_interface),
+
+            start_button_handle: start_button(context.user_interface),
+            class_button_handle: class_button(context.user_interface),
+            
+            
             //messager: None,
         }
     }
@@ -182,10 +697,17 @@ impl Plugin for Game {
                     //add the player to the game's struct
                     self.players.insert(id, player_handle);
 
+                    //add the player and default class to struct
+                    self.playerclasses.insert(id, Class::Rogue);
+
+                    self.idList.push(id);
+
+
+
                     //adds script player to object
                     set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
                         Player{
-                                class: Class::Rogue,
+                                class: self.playerclasses[&id].clone(),
                                 state: PlayerState::Idle,
                                 weapon: None,
                                 facing: Vector3::new(0.0,1.0,0.0),
@@ -234,10 +756,94 @@ impl Plugin for Game {
 
     fn on_ui_message(
         &mut self,
-        _context: &mut PluginContext,
-        _message: &UiMessage,
+        context: &mut PluginContext,
+        message: &UiMessage,
     ) {
         // Handle UI events here.
+        if let Some(ButtonMessage::Click) = message.data() {
+
+            // match message.destination() {
+            //     self.class_button_handle => create_window(context.user_interface),
+
+            //     self.start_button_handle => (), //START THE GAME
+            // }
+
+            if message.destination() == self.class_button_handle {
+                create_window(context.user_interface);
+                //println!("{:?}", message.clone());
+            }
+            if message.destination() == self.start_button_handle {
+                
+                //START THE GAME
+                //self.start_button_handle.set_visibility(false);
+                //println!("{:?}", message.clone());
+            }
+            if message.destination() == self.p1fig {
+                self.playerclasses.insert(self.idList[0], Class::Fighter);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p1rog {
+                self.playerclasses.insert(self.idList[0], Class::Rogue);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p1barb {
+                self.playerclasses.insert(self.idList[0], Class::Barbarian);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p1wiz {
+                self.playerclasses.insert(self.idList[0], Class::Wizard);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p2fig {
+                self.playerclasses.insert(self.idList[1], Class::Fighter);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p2rog {
+                self.playerclasses.insert(self.idList[1], Class::Rogue);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p2barb {
+                self.playerclasses.insert(self.idList[1], Class::Barbarian);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p2wiz {
+                self.playerclasses.insert(self.idList[1], Class::Wizard);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p3fig {
+                self.playerclasses.insert(self.idList[2], Class::Fighter);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p3rog {
+                self.playerclasses.insert(self.idList[2], Class::Rogue);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p3barb {
+                self.playerclasses.insert(self.idList[2], Class::Barbarian);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p3wiz {
+                self.playerclasses.insert(self.idList[2], Class::Wizard);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p4fig {
+                self.playerclasses.insert(self.idList[3], Class::Fighter);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p4rog {
+                self.playerclasses.insert(self.idList[3], Class::Rogue);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p4barb {
+                self.playerclasses.insert(self.idList[3], Class::Barbarian);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+            if message.destination() == self.p4wiz {
+                self.playerclasses.insert(self.idList[3], Class::Wizard);
+                //playerclasses.//update player1's class to Class::Fighter
+            }
+
+        }
     }
     
     fn on_scene_begin_loading(&mut self, path: &Path, ctx: &mut PluginContext) {
