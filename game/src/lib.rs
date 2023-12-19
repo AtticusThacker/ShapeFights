@@ -268,6 +268,7 @@ pub enum PlayerState {
     Idle,
     //the field holds the number of frames the player is into the action
     Attacking(i32),
+    Hit(i32),
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -334,8 +335,8 @@ impl ScriptTrait for Player {
 
                 },
 
-                Hit{damage: dam, knockback: knock} => {
-                    println!("took {} damage and {} knockback!", dam, knock);
+                Hit{damage: dam, knockback: knock, body: bod} => {
+                    self.class.clone().takehit(self, dam.clone(), knock.clone(), bod.clone(), ctx);
                 }
                 _ => (),
             }

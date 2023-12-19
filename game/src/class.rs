@@ -1,6 +1,6 @@
 use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, 
     RigidBodyType, PlayerState, 
-    PlayerState::{Attacking, Idle},
+    PlayerState::{Attacking, Idle, Hit},
     Player, Projectile, set_script};
 use std::collections::{HashMap, HashSet};
 use fyrox::{
@@ -61,7 +61,7 @@ use fyrox::script::Script;
 
 use crate::messages::{
     Message,
-    Message::{Controller, Hit},
+    Message::{Controller, Hit as MessHit},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -111,16 +111,19 @@ impl Class {
     const FIGDAM:i32 = 12;
 
     //knockback done by each class in melee; not implemented yet
-    const BARBKNOCK:f32 = 12.0;
-    const ROGKNOCK:f32 = 12.0;
-    const WIZKNOCK:f32 = 12.0;
-    const FIGKNOCK:f32 = 12.0;
+    const BARBKNOCK:f32 = 3.0;
+    const ROGKNOCK:f32 = 3.0;
+    const WIZKNOCK:f32 = 3.0;
+    const FIGKNOCK:f32 = 3.0;
 
     //ranged attack speed scalar
     const RATKSPD:f32 = 3.0;
 
     //ranged attack speed cooldown (in frames)
     const RCOOL:i32 = 60;
+
+    //hitstun duration (frames)
+    const HITDUR: i32 = 30;
 
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
 
@@ -240,19 +243,24 @@ impl Class {
 
     pub fn moveplayer(&self, script: &mut Player, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
-            match (axis, self) {
-                (g::Axis::LeftStickX, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
-                (g::Axis::LeftStickX, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::ROGSPD, rigid_body.lin_vel().y));},
-                (g::Axis::LeftStickX, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::WIZSPD, rigid_body.lin_vel().y));},
-                (g::Axis::LeftStickX, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::FIGSPD, rigid_body.lin_vel().y));},
-            
-                (g::Axis::LeftStickY, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::BARBSPD));},
-                (g::Axis::LeftStickY, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::ROGSPD));},
-                (g::Axis::LeftStickY, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
-                (g::Axis::LeftStickY, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
+            match (axis, self, script.state.clone()) {
+                (_, _, PlayerState::Hit(_)) => {}, //cant move when hit
 
-                (g::Axis::RightStickX, _) if (value.clone() != 0.0 && !matches!(script.state, PlayerState::Attacking(_))) => {script.facing.x = -*value;},
-                (g::Axis::RightStickY, _) if (value.clone() != 0.0 && !matches!(script.state, PlayerState::Attacking(_))) => {script.facing.y = *value;},
+                (g::Axis::LeftStickX, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::ROGSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::WIZSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::FIGSPD, rigid_body.lin_vel().y));},
+            
+                (g::Axis::LeftStickY, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::BARBSPD));},
+                (g::Axis::LeftStickY, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::ROGSPD));},
+                (g::Axis::LeftStickY, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
+                (g::Axis::LeftStickY, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
+
+                (g::Axis::RightStickX, _, PlayerState::Attacking(_)) => {},
+                (g::Axis::RightStickY, _, PlayerState::Attacking(_)) => {},
+
+                (g::Axis::RightStickX, _, _) if (value.clone() != 0.0) => {script.facing.x = -*value;},
+                (g::Axis::RightStickY, _, _) if (value.clone() != 0.0) => {script.facing.y = *value;},
                 _ => (),
             }
         } else {println!("didn't get rigidbody");} 
@@ -301,12 +309,19 @@ impl Class {
                         if i.has_any_active_contact {
                             //find its parent
                             if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
-                                if let Some(s) = p.as_rigid_body2d().script() {
-                                    if let Some(s) = s.cast::<Player>() {
-                                        println!("hit a player!");
-                                        ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
-                                    }
-                                }
+                                let mut knockvec = script.facing.clone();
+                                knockvec.set_magnitude(knock);
+                                ctx.message_sender.send_to_target(phandle, Message::Hit{
+                                    damage: dam, 
+                                    knockback: knockvec,
+                                    body: phandle.clone()
+                                });
+                                // if let Some(s) = p.as_rigid_body2d().script() {
+                                //     if let Some(s) = s.cast::<Player>() {
+                                //         println!("hit a player!");
+                                //         ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
+                                //     }
+                                // }
                             }
                         }
                     }
@@ -410,6 +425,28 @@ impl Class {
             //     rigid_body.set_lin_vel(Vector2::new(dirvec[0], dirvec[1]));
             // }
             script.cooldown = 0
+        }
+    }
+
+
+
+
+    pub fn takehit(&self, script: &mut Player, dam: i32, knock: Vector3<f32>, bod: Handle<Node>, ctx: &mut ScriptMessageContext) {
+        //check if hit is valid
+        if let Some((bhandle, b)) = ctx.scene.graph.find(ctx.handle.clone(), &mut |c| c.instance_id() == ctx.scene.graph[bod].instance_id()) {
+            match script.state {
+                PlayerState::Hit(_) => {},
+                _ => {
+                    //take a hit
+                    script.state = PlayerState::Hit(0);
+                    if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+                        rigid_body.set_lin_vel(Vector2::new(knock.x, knock.y));
+                    }
+
+
+
+                }
+            }
         }
     }
 
