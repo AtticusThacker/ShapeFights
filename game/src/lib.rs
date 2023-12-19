@@ -10,7 +10,7 @@ use fyrox::{
         visitor::prelude::*, TypeUuidProvider,
         futures::executor::block_on,
     },
-    gui::message::UiMessage,
+    gui::{message::UiMessage, core::color::Color},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
     event::{ElementState, Event, WindowEvent},
@@ -98,11 +98,12 @@ fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<
         BaseBuilder::new().with_local_transform(
             TransformBuilder::new()
                 // Size of the rectangle is defined only by scale.
-                .with_local_scale(Vector3::new(0.5, 0.4, 1.0))
+                .with_local_scale(Vector3::new(0.4, 0.4, 0.4))
                 .build(),
         ),
     )
-    .with_texture(resource_manager.request::<Texture, _>("data/rcircle.png"))
+    .with_texture(resource_manager.request::<Texture, _>("data/White_star.png"))
+    .with_color(Color{r:0, g:255, b:127, a:255})
     .build(graph)
 }
 
