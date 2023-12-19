@@ -379,6 +379,7 @@ impl Plugin for Game {
                 i = i+1;
             }
             text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
+            ctx.build_ctx()[text2.clone()].set_visibility(true);
         }
 
         // player 3
@@ -407,6 +408,7 @@ impl Plugin for Game {
             }
 
             text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
+            ctx.build_ctx()[text3.clone()].set_visibility(true);
         }
 
         // player 4
@@ -434,6 +436,7 @@ impl Plugin for Game {
             }
 
             text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
+            ctx.build_ctx()[text4.clone()].set_visibility(true);
         }
     }
 
@@ -467,10 +470,7 @@ impl Plugin for Game {
         context: &mut PluginContext,
     ) {
         self.scene = scene;
-
-        let ctx = &mut context.user_interface;
      }
-
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -518,8 +518,6 @@ impl ScriptTrait for Player {
 
             _ => (),
         }
-
-
     }
 
     fn on_message(&mut self,
@@ -537,11 +535,9 @@ impl ScriptTrait for Player {
                         ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
                         _ => (),
                     }
-
                 },
                 _ => (),
             }
-
         }
     }
 
