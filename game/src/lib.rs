@@ -10,13 +10,13 @@ use fyrox::{
         visitor::prelude::*, TypeUuidProvider,
         futures::executor::block_on,
     },
-    gui::message::UiMessage,
+    gui::{message::UiMessage, core::color::Color},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
     event::{ElementState, Event, WindowEvent},
     keyboard::KeyCode,
     impl_component_provider,
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource},
     scene::{
         dim2::{
             rectangle::{Rectangle, RectangleBuilder}, 
@@ -43,7 +43,7 @@ use gilrs::{
     Event as gEvent,
     EventType::*, 
     ev::*,
-    Button::{RightTrigger,},
+    Button::{RightTrigger,LeftTrigger},
 };
 use fyrox::script::Script;
 
@@ -59,7 +59,7 @@ fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
             // Rigid body must have at least one collider
             ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(ColliderShape::cuboid(0.5, 0.5))
+                .with_shape(ColliderShape::cuboid(0.25, 0.2))
                 .build(graph),
         ]))
     .with_mass(2.0)
@@ -98,11 +98,12 @@ fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<
         BaseBuilder::new().with_local_transform(
             TransformBuilder::new()
                 // Size of the rectangle is defined only by scale.
-                .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
+                .with_local_scale(Vector3::new(0.4, 0.4, 0.4))
                 .build(),
         ),
     )
-    .with_texture(resource_manager.request::<Texture, _>("data/rcircle.png"))
+    .with_texture(resource_manager.request::<Texture, _>("data/White_star.png"))
+    .with_color(Color{r:0, g:255, b:127, a:255})
     .build(graph)
 }
 
@@ -188,6 +189,7 @@ impl Plugin for Game {
                                 class: Class::Rogue,
                                 state: PlayerState::Idle,
                                 weapon: None,
+                                cooldown: 0,
                                 facing: Vector3::new(0.0,1.0,0.0),
                                 })
 
@@ -261,12 +263,13 @@ impl Plugin for Game {
     }
 }
 
-#[derive(Visit, Reflect, Debug, Clone, Default)]
+#[derive(Visit, Reflect, Debug, Clone, Default, PartialEq)]
 pub enum PlayerState {
     #[default]
     Idle,
     //the field holds the number of frames the player is into the action
     Attacking(i32),
+    Hit(i32),
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -274,6 +277,7 @@ pub struct Player{
     class: Class,
     state: PlayerState,
     weapon: Option<Handle<Node>>,
+    cooldown: i32,
     facing: Vector3<f32>, //z axis should always be 0.0 here!
 }
 
@@ -306,6 +310,8 @@ impl ScriptTrait for Player {
 
             _ => (),
         }
+
+        self.cooldown += 1;
         Class::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
 
     }
@@ -323,19 +329,55 @@ impl ScriptTrait for Player {
                         AxisChanged(axis, value, _code) => self.class.clone().moveplayer(self, axis, value, ctx),
                         //must clone class for any method that takes a 'self' as well.
                         ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
+                        //projectiles
+                        ButtonPressed(LeftTrigger, _) => self.class.clone().projectiles(self, ctx),
                         _ => (),
                     }
 
                 },
 
-                Hit{damage: dam, knockback: knock} => {
-                    println!("took {} damage and {} knockback!", dam, knock);
+                Hit{damage: dam, knockback: knock, body: bod} => {
+                    self.class.clone().takehit(self, dam.clone(), knock.clone(), bod.clone(), ctx);
                 }
                 _ => (),
             }
 
         }
     }
+
+    // Returns unique script ID for serialization needs.
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
+}
+
+#[derive(Visit, Reflect, Debug, Clone, Default)]
+
+pub struct Projectile {
+
+}
+
+impl_component_provider!(Projectile,);
+
+impl TypeUuidProvider for Projectile {
+    // Returns unique script id for serialization needs.
+    fn type_uuid() -> Uuid {
+        uuid!("c5671d19-9f1a-4286-8486-add4ebaadaed")
+    }
+}
+
+impl ScriptTrait for Projectile {
+    // Called once at initialization.
+    fn on_init(&mut self, context: &mut ScriptContext) {}
+    
+    // Put start logic - it is called when every other script is already initialized.
+    fn on_start(&mut self, context: &mut ScriptContext) { }
+
+    // Called whenever there is an event from OS (mouse click, keypress, etc.)
+    fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {}
+
+    // Called every frame at fixed rate of 60 FPS.
+    fn on_update(&mut self, context: &mut ScriptContext) {}
 
     // Returns unique script ID for serialization needs.
     fn id(&self) -> Uuid {

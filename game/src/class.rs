@@ -1,6 +1,7 @@
 use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, 
     RigidBodyType, PlayerState, 
-    PlayerState::{Attacking, Idle}, Player};
+    PlayerState::{Attacking, Idle, Hit},
+    Player, Projectile, set_script};
 use std::collections::{HashMap, HashSet};
 use fyrox::{
 
@@ -27,7 +28,7 @@ use fyrox::{
                 ColliderShape, 
                 ColliderBuilder,
                 CuboidShape,
-
+                TriangleShape,
             },
             joint,
             joint::*
@@ -60,7 +61,7 @@ use fyrox::script::Script;
 
 use crate::messages::{
     Message,
-    Message::{Controller, Hit},
+    Message::{Controller, Hit as MessHit},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -80,10 +81,10 @@ impl Class {
     const FIGSPD:f32 = 1.0;
 
     //shape of weapon (each number is half of the length of one of the sides)
-    const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
-    const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
-    const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
-    const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
+    const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
 
     //number of frames in melee attack
     const BARBINT:i32 = 15;
@@ -110,12 +111,55 @@ impl Class {
     const FIGDAM:i32 = 12;
 
     //knockback done by each class in melee; not implemented yet
-    const BARBKNOCK:f32 = 12.0;
-    const ROGKNOCK:f32 = 12.0;
-    const WIZKNOCK:f32 = 12.0;
-    const FIGKNOCK:f32 = 12.0;
+    const BARBKNOCK:f32 = 3.0;
+    const ROGKNOCK:f32 = 3.0;
+    const WIZKNOCK:f32 = 3.0;
+    const FIGKNOCK:f32 = 3.0;
+
+    //ranged attack speed scalar
+    const RATKSPD:f32 = 3.0;
+
+    //ranged attack speed cooldown (in frames)
+    const RCOOL:i32 = 60;
+
+    //hitstun duration (frames)
+    const HITDUR: i32 = 30;
 
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
+
+        //setting up the "facing chevron"
+        let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
+        let mut off = script.facing.clone();
+        off.set_magnitude(0.3);
+        trans.offset(off);
+        let chevron = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+            RectangleBuilder::new(
+                BaseBuilder::new().with_local_transform(
+                    TransformBuilder::new()
+                        // Size of the rectangle is defined only by scale.
+                        .with_local_scale(Vector3::new(0.25,-0.25,0.1))
+                        .build()
+                )
+            )
+            .with_texture(context.resource_manager.request::<Texture, _>("data/White_chevron.png"))
+            .build(&mut context.scene.graph),
+            ColliderBuilder::new(BaseBuilder::new())
+                    .with_shape(fyrox::scene::dim2::collider::ColliderShape::Triangle(TriangleShape{
+                        a: Vector2::new(0.0,0.25),
+                        b: Vector2::new(-0.15,0.0),
+                        c: Vector2::new(0.15,0.0),
+                    }))
+                    .with_sensor(true)
+                    .build(&mut context.scene.graph),
+            ])
+            .with_local_transform(trans)
+        )
+        .with_body_type(RigidBodyType::KinematicPositionBased)
+        .build(&mut context.scene.graph);
+
+        context.scene.graph.link_nodes(chevron, context.handle);
+        
+        //setting up melee weapon
         if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>() {
             let weapontype = match self {
                 Class::Barbarian => Self::BARBWEP,
@@ -129,7 +173,7 @@ impl Class {
                     BaseBuilder::new().with_local_transform(
                         TransformBuilder::new()
                             // Size of the rectangle is defined only by scale.
-                            .with_local_scale(Vector3::new(weapontype.half_extents[0].clone(), weapontype.half_extents[1].clone(),1.0))
+                            .with_local_scale(Vector3::new(weapontype.half_extents[0].clone()*2.0, weapontype.half_extents[1].clone()*2.0,1.0))
                             .build()
                     )
                 )
@@ -163,9 +207,9 @@ impl Class {
                 starting_transform.set_rotation(UnitQuaternion::from_axis_angle(&axis, -(std::f32::consts::FRAC_PI_2)))
                     //these should always be negatives of each other in x and y coords.
                     //this sets the position relative to the player
-                    .set_position(Vector3::new(0.0,0.5,0.0))
+                    .set_position(Vector3::new(0.0,0.75,0.0))
                     //this sets the position of the rotation pivot (the thing it rotates around) to the center of the player
-                    .set_rotation_pivot(Vector3::new(0.0,-0.5,0.0));
+                    .set_rotation_pivot(Vector3::new(0.0,-0.75,0.0));
                 
                 weapon.set_local_transform(starting_transform);
             }
@@ -199,19 +243,19 @@ impl Class {
 
     pub fn moveplayer(&self, script: &mut Player, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
-            match (axis, self) {
-                (g::Axis::LeftStickX, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
-                (g::Axis::LeftStickX, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::ROGSPD, rigid_body.lin_vel().y));},
-                (g::Axis::LeftStickX, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::WIZSPD, rigid_body.lin_vel().y));},
-                (g::Axis::LeftStickX, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::FIGSPD, rigid_body.lin_vel().y));},
-            
-                (g::Axis::LeftStickY, Class::Barbarian) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::BARBSPD));},
-                (g::Axis::LeftStickY, Class::Rogue) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::ROGSPD));},
-                (g::Axis::LeftStickY, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
-                (g::Axis::LeftStickY, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
+            match (axis, self, script.state.clone()) {
+                (_, _, PlayerState::Hit(_)) => {}, //cant move when hit
 
-                (g::Axis::RightStickX, _) if value.clone() != 0.0 => {script.facing.x = -*value;},
-                (g::Axis::RightStickY, _) if value.clone() != 0.0 => {script.facing.y = *value;},
+                (g::Axis::LeftStickX, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::ROGSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::WIZSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::FIGSPD, rigid_body.lin_vel().y));},
+            
+                (g::Axis::LeftStickY, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::BARBSPD));},
+                (g::Axis::LeftStickY, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::ROGSPD));},
+                (g::Axis::LeftStickY, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
+                (g::Axis::LeftStickY, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
+
                 _ => (),
             }
         } else {println!("didn't get rigidbody");} 
@@ -260,12 +304,19 @@ impl Class {
                         if i.has_any_active_contact {
                             //find its parent
                             if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
-                                if let Some(s) = p.as_rigid_body2d().script() {
-                                    if let Some(s) = s.cast::<Player>() {
-                                        println!("hit a player!");
-                                        ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
-                                    }
-                                }
+                                let mut knockvec = script.facing.clone();
+                                knockvec.set_magnitude(knock);
+                                ctx.message_sender.send_to_target(phandle, Message::Hit{
+                                    damage: dam, 
+                                    knockback: knockvec,
+                                    body: phandle.clone()
+                                });
+                                // if let Some(s) = p.as_rigid_body2d().script() {
+                                //     if let Some(s) = s.cast::<Player>() {
+                                //         println!("hit a player!");
+                                //         ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
+                                //     }
+                                // }
                             }
                         }
                     }
@@ -298,6 +349,100 @@ impl Class {
             }
         }
 
+    }
+
+    pub fn projectiles(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
+        // let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+        //             RectangleBuilder::new(
+        //                 BaseBuilder::new().with_local_transform(
+        //                     TransformBuilder::new()
+        //                         // Size of the rectangle is defined only by scale.
+        //                         .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
+        //                         .build(),
+        //                 ),
+        //             )
+        //             .with_texture(ctx.resource_manager.request::<Texture, _>("data/rcircle.png"))
+        //             .build(&mut ctx.scene.graph),
+        //                 // Rigid body must have at least one collider
+        //                 ColliderBuilder::new(BaseBuilder::new())
+        //                     .with_shape(ColliderShape::cuboid(0.5, 0.5))
+        //                     .with_sensor(true)
+        //                     .build(&mut ctx.scene.graph),
+        //             ]))
+        //         .with_body_type(RigidBodyType::KinematicVelocityBased)
+        //         .build(&mut ctx.scene.graph);
+
+        if (script.cooldown > Self::RCOOL && script.state == Idle) {
+            let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
+            // let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
+            trans.offset(script.facing.clone());
+
+            let mut spd = Vector2::new(script.facing[0],script.facing[1]);
+            spd.set_magnitude(Self::RATKSPD);
+
+            let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+                RectangleBuilder::new(
+                    BaseBuilder::new().with_local_transform(
+                        TransformBuilder::new()
+                            // Size of the rectangle is defined only by scale.
+                            .with_local_scale(Vector3::new(0.4, 0.6, 1.0))
+                            .build()
+                    )
+                )
+                    .with_texture(ctx.resource_manager.request::<Texture, _>("data/white_rectangle.png"))
+                    .build(&mut ctx.scene.graph),
+                // Rigid body must have at least one collider
+                ColliderBuilder::new(BaseBuilder::new())
+                    .with_shape(ColliderShape::cuboid(0.4, 0.6))
+                    .with_sensor(true)
+                    .build(&mut ctx.scene.graph),
+                
+                ])
+                .with_local_transform(trans)
+            )
+            .with_gravity_scale(0.0)
+            .with_lin_vel(spd)
+            .with_can_sleep(false)
+            .with_ccd_enabled(true)
+            .build(&mut ctx.scene.graph);
+
+            set_script(&mut ctx.scene.graph[proj.clone()], 
+                        Projectile{}
+                        );
+
+
+
+
+
+            //ctx.scene.graph.link_nodes(proj, ctx.handle);
+
+            // if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
+            //     rigid_body.set_lin_vel(Vector2::new(dirvec[0], dirvec[1]));
+            // }
+            script.cooldown = 0
+        }
+    }
+
+
+
+
+    pub fn takehit(&self, script: &mut Player, dam: i32, knock: Vector3<f32>, bod: Handle<Node>, ctx: &mut ScriptMessageContext) {
+        //check if hit is valid
+        if let Some((bhandle, b)) = ctx.scene.graph.find(ctx.handle.clone(), &mut |c| c.instance_id() == ctx.scene.graph[bod].instance_id()) {
+            match script.state {
+                PlayerState::Hit(_) => {},
+                _ => {
+                    //take a hit
+                    script.state = PlayerState::Hit(0);
+                    if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+                        rigid_body.set_lin_vel(Vector2::new(knock.x, knock.y));
+                    }
+
+
+
+                }
+            }
+        }
     }
 
 }
