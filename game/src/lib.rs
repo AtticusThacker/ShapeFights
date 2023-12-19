@@ -1,5 +1,6 @@
 //! Game project.
 use std::collections::HashMap;
+use std::vec::Vec;
 use fyrox::{
 
     core::{
@@ -62,7 +63,7 @@ use fyrox::script::Script;
 
 pub mod class;
 pub mod messages;
-//pub mod WidgetBuilder;
+
 use messages::{
     Message,
     Message::{Controller},
@@ -98,28 +99,58 @@ fn create_centered_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
 // }
 
 
-fn create_text_with_background_1(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
+// the functions fyrox gives us to create text were not great so i made my own
+// each of the next 4 functions create text with a background (like highlighted)
+// there's 4, one for each possible player, each with a different color
+// also they take in floating point numbers as parameters for position
+fn create_text_with_background_1(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
     let text_widget =
-        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::RED)))
+        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
             .with_text(text)
             .build(&mut ui.build_ctx());
     BorderBuilder::new(
-        WidgetBuilder::new().with_desired_position(Vector2::new(100.0, 200.0))
+        WidgetBuilder::new().with_desired_position(Vector2::new(x,y))
             .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(50, 50, 50))),
+            .with_background(Brush::Solid(Color::opaque(66, 245, 158))), // green
     )
     .build(&mut ui.build_ctx())
 }
 
-fn create_text_with_background_2(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
+fn create_text_with_background_2(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
     let text_widget =
-        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::GREEN)))
+        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
             .with_text(text)
             .build(&mut ui.build_ctx());
     BorderBuilder::new(
-        WidgetBuilder::new().with_desired_position(Vector2::new(200.0, 200.0))
+        WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
             .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(50, 50, 50))),
+            .with_background(Brush::Solid(Color::opaque(66, 167, 245))), // blue
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn create_text_with_background_3(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
+    let text_widget =
+        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
+            .with_text(text)
+            .build(&mut ui.build_ctx());
+    BorderBuilder::new(
+        WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
+            .with_child(text_widget) // <-- Text is now a child of the border
+            .with_background(Brush::Solid(Color::opaque(194, 136, 252))), // purple
+    )
+    .build(&mut ui.build_ctx())
+}
+
+fn create_text_with_background_4(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
+    let text_widget =
+        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
+            .with_text(text)
+            .build(&mut ui.build_ctx());
+    BorderBuilder::new(
+        WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
+            .with_child(text_widget) // <-- Text is now a child of the border
+            .with_background(Brush::Solid(Color::opaque(250, 135, 215))), // pink
     )
     .build(&mut ui.build_ctx())
 }
@@ -197,9 +228,9 @@ pub struct Game {
     scene: Handle<Scene>,
     gils: Gilrs,
     players: HashMap<g::GamepadId, Handle<Node>>,
-    // messager: Option<ScriptMessageSender>,
+    idList: Vec::<GamepadId>,
 }
-
+use gilrs::GamepadId;
 impl Game {
     pub fn new(scene_path: Option<&str>, context: PluginContext) -> Self {
         context
@@ -210,12 +241,16 @@ impl Game {
             scene: Handle::NONE,
             gils: Gilrs::new().unwrap(),
             players: HashMap::new(),
-            //messager: None,
+            idList: Vec::<GamepadId>::new(),
         }
+
     }
 }
 
+
+
 impl Plugin for Game {
+
     fn on_deinit(&mut self, _context: PluginContext) {
         // Do a cleanup here.
     }
@@ -255,10 +290,11 @@ impl Plugin for Game {
                     //adds script player to object
                     set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
                         Player{
-                                class: Class::Rogue,
-                                state: PlayerState::Idle,
-                                weapon: None,
-                                })
+                            class: Class::Rogue,
+                            state: PlayerState::Idle,
+                            weapon: None,
+                            health: 10,
+                        })
 
                 },
                 //send the controller event to the player
@@ -270,11 +306,62 @@ impl Plugin for Game {
                 
                 _ => (), //for now
 
-            }
-
-
-            
+            }  
         }
+
+        let ctx = &mut context.user_interface;
+
+        // changes the number of xs in the health status bar
+        // this has not been tested yet so idk if it works
+
+        if self.players.len() > 0 {
+            let h = self.players.get(&self.idList[0]).health;
+            let mut text: &str = "";
+            let mut i = 0;
+            while i < h {
+                text = &(text.to_owned() + "x");
+                i = i+1;
+            }
+            create_text_with_background_1(ctx, text, 175.0, 1000.0);
+
+        }
+
+        if self.players.len() > 1 {
+            let h = self.players.get(&self.idList[1]).health;
+            let mut text: &str = "";
+            let mut i = 0;
+            while i < h {
+                text = &(text.to_owned() + "x");
+                i = i+1;
+            }
+            create_text_with_background_2(ctx, text, 375.0, 1000.0);
+
+        }
+
+        if self.players.len() > 2 {
+            let h = self.players.get(&self.idList[2]).health;
+            let mut text: &str = "";
+            let mut i = 0;
+            while i < h {
+                text = &(text.to_owned() + "x");
+                i = i+1;
+            }
+            create_text_with_background_3(ctx, text, 575.0, 1000.0);
+
+        }
+
+        if self.players.len() > 3 {
+            let h = self.players.get(&self.idList[3]).health;
+            let mut text: &str = "";
+            let mut i = 0;
+            while i < h {
+                text = &(text.to_owned() + "x");
+                i = i+1;
+            }
+            create_text_with_background_4(ctx, text, 775.0, 1000.0);
+
+        }
+        
         
     }
 
@@ -311,10 +398,39 @@ impl Plugin for Game {
 
         let ctx = &mut context.user_interface;
         //let ui = &mut context.user_interface;
-        let text: &str = "this works?";
+        let text: &str = "health: ";
 
-        create_text_with_background_1(ctx, text);
-        create_text_with_background_2(ctx, text);
+        // this hasnt been tested yet since i don't have a controller
+
+        // creates text health indicators for number of players
+        // each has different color and position
+        let mut playerText1: Handle<UiNode>;
+        let mut playerText2: Handle<UiNode>;
+        let mut playerText3: Handle<UiNode>;
+        let mut playerText4: Handle<UiNode>;
+        if self.players.len() > 0 {
+            playerText1 = create_text_with_background_1(ctx, text, 100.0, 1000.0);
+            create_text_with_background_1(ctx, "xxxxxxxxxx", 175.0, 1000.0);
+        }
+
+        if self.players.len() > 1 {
+            playerText2 = create_text_with_background_2(ctx, text, 300.0, 1000.0);
+            create_text_with_background_2(ctx, "xxxxxxxxxx", 375.0, 1000.0);
+        }
+       
+       if self.players.len() > 2 {
+            playerText3 = create_text_with_background_3(ctx, text, 500.0, 1000.0);
+            create_text_with_background_3(ctx, "xxxxxxxxxx", 575.0, 1000.0);
+        }
+        
+        if self.players.len() > 3 {
+            playerText4 = create_text_with_background_4(ctx, text, 700.0, 1000.0);
+            create_text_with_background_4(ctx, "xxxxxxxxxx", 775.0, 1000.0);
+        }
+
+        for key in self.players.keys() {
+            self.idList.push(*key);
+        }
     }
 
 }
@@ -332,6 +448,7 @@ pub struct Player{
     class: Class,
     state: PlayerState,
     weapon: Option<Handle<Node>>,
+    health: u32,
 }
 
 impl_component_provider!(Player,);
