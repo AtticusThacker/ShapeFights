@@ -59,7 +59,7 @@ fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
     RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
             // Rigid body must have at least one collider
             ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(ColliderShape::cuboid(0.5, 0.5))
+                .with_shape(ColliderShape::cuboid(0.25, 0.2))
                 .build(graph),
         ]))
     .with_mass(2.0)
@@ -98,7 +98,7 @@ fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<
         BaseBuilder::new().with_local_transform(
             TransformBuilder::new()
                 // Size of the rectangle is defined only by scale.
-                .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
+                .with_local_scale(Vector3::new(0.5, 0.4, 1.0))
                 .build(),
         ),
     )
@@ -262,7 +262,7 @@ impl Plugin for Game {
     }
 }
 
-#[derive(Visit, Reflect, Debug, Clone, Default)]
+#[derive(Visit, Reflect, Debug, Clone, Default, PartialEq)]
 pub enum PlayerState {
     #[default]
     Idle,

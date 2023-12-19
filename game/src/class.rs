@@ -81,10 +81,10 @@ impl Class {
     const FIGSPD:f32 = 1.0;
 
     //shape of weapon (each number is half of the length of one of the sides)
-    const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
-    const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
-    const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
-    const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.7)};
+    const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
 
     //number of frames in melee attack
     const BARBINT:i32 = 15;
@@ -137,7 +137,7 @@ impl Class {
                     BaseBuilder::new().with_local_transform(
                         TransformBuilder::new()
                             // Size of the rectangle is defined only by scale.
-                            .with_local_scale(Vector3::new(weapontype.half_extents[0].clone(), weapontype.half_extents[1].clone(),1.0))
+                            .with_local_scale(Vector3::new(weapontype.half_extents[0].clone()*2.0, weapontype.half_extents[1].clone()*2.0,1.0))
                             .build()
                     )
                 )
@@ -171,9 +171,9 @@ impl Class {
                 starting_transform.set_rotation(UnitQuaternion::from_axis_angle(&axis, -(std::f32::consts::FRAC_PI_2)))
                     //these should always be negatives of each other in x and y coords.
                     //this sets the position relative to the player
-                    .set_position(Vector3::new(0.0,0.5,0.0))
+                    .set_position(Vector3::new(0.0,0.75,0.0))
                     //this sets the position of the rotation pivot (the thing it rotates around) to the center of the player
-                    .set_rotation_pivot(Vector3::new(0.0,-0.5,0.0));
+                    .set_rotation_pivot(Vector3::new(0.0,-0.75,0.0));
                 
                 weapon.set_local_transform(starting_transform);
             }
@@ -218,8 +218,8 @@ impl Class {
                 (g::Axis::LeftStickY, Class::Wizard) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
                 (g::Axis::LeftStickY, Class::Fighter) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
 
-                (g::Axis::RightStickX, _) if value.clone() != 0.0 => {script.facing.x = -*value;},
-                (g::Axis::RightStickY, _) if value.clone() != 0.0 => {script.facing.y = *value;},
+                (g::Axis::RightStickX, _) if (value.clone() != 0.0 && !matches!(script.state, PlayerState::Attacking(_))) => {script.facing.x = -*value;},
+                (g::Axis::RightStickY, _) if (value.clone() != 0.0 && !matches!(script.state, PlayerState::Attacking(_))) => {script.facing.y = *value;},
                 _ => (),
             }
         } else {println!("didn't get rigidbody");} 
@@ -329,10 +329,13 @@ impl Class {
         //         .with_body_type(RigidBodyType::KinematicVelocityBased)
         //         .build(&mut ctx.scene.graph);
 
-        if script.cooldown > Self::RCOOL {
+        if (script.cooldown > Self::RCOOL && script.state == Idle) {
             let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
             // let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
             trans.offset(script.facing.clone());
+
+            let mut spd = Vector2::new(script.facing[0],script.facing[1]);
+            spd.set_magnitude(Self::RATKSPD);
 
             let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
                 RectangleBuilder::new(
@@ -355,7 +358,7 @@ impl Class {
                 .with_local_transform(trans)
             )
             .with_gravity_scale(0.0)
-            .with_lin_vel(Vector2::new(script.facing[0]*Self::RATKSPD,script.facing[1]*Self::RATKSPD))
+            .with_lin_vel(spd)
             .with_can_sleep(false)
             .with_ccd_enabled(true)
             .build(&mut ctx.scene.graph);
