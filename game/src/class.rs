@@ -130,7 +130,7 @@ impl Class {
         //setting up the "facing chevron"
         let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
         let mut off = script.facing.clone();
-        off.set_magnitude(0.25);
+        off.set_magnitude(0.3);
         trans.offset(off);
         let chevron = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
             RectangleBuilder::new(
@@ -141,7 +141,7 @@ impl Class {
                         .build()
                 )
             )
-            .with_texture(context.resource_manager.request::<Texture, _>("data/chevron.png"))
+            .with_texture(context.resource_manager.request::<Texture, _>("data/White_chevron.png"))
             .build(&mut context.scene.graph),
             ColliderBuilder::new(BaseBuilder::new())
                     .with_shape(fyrox::scene::dim2::collider::ColliderShape::Triangle(TriangleShape{
