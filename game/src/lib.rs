@@ -770,77 +770,61 @@ impl Plugin for Game {
 
             if message.destination() == self.class_button_handle {
                 create_window(context.user_interface);
-                //println!("{:?}", message.clone());
             }
             if message.destination() == self.start_button_handle {
                 
                 //START THE GAME
-                //self.start_button_handle.set_visibility(false);
-                //println!("{:?}", message.clone());
+                //set the buttons to invisible (if theyre still there)
+                //self.start_button_handle.set_visibility(false); //doesnt work
+                
             }
             if message.destination() == self.p1fig {
                 self.playerclasses.insert(self.idList[0], Class::Fighter);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p1rog {
                 self.playerclasses.insert(self.idList[0], Class::Rogue);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p1barb {
                 self.playerclasses.insert(self.idList[0], Class::Barbarian);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p1wiz {
                 self.playerclasses.insert(self.idList[0], Class::Wizard);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p2fig {
                 self.playerclasses.insert(self.idList[1], Class::Fighter);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p2rog {
                 self.playerclasses.insert(self.idList[1], Class::Rogue);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p2barb {
                 self.playerclasses.insert(self.idList[1], Class::Barbarian);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p2wiz {
                 self.playerclasses.insert(self.idList[1], Class::Wizard);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p3fig {
                 self.playerclasses.insert(self.idList[2], Class::Fighter);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p3rog {
                 self.playerclasses.insert(self.idList[2], Class::Rogue);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p3barb {
                 self.playerclasses.insert(self.idList[2], Class::Barbarian);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p3wiz {
                 self.playerclasses.insert(self.idList[2], Class::Wizard);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p4fig {
                 self.playerclasses.insert(self.idList[3], Class::Fighter);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p4rog {
                 self.playerclasses.insert(self.idList[3], Class::Rogue);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p4barb {
                 self.playerclasses.insert(self.idList[3], Class::Barbarian);
-                //playerclasses.//update player1's class to Class::Fighter
             }
             if message.destination() == self.p4wiz {
                 self.playerclasses.insert(self.idList[3], Class::Wizard);
-                //playerclasses.//update player1's class to Class::Fighter
             }
 
         }
