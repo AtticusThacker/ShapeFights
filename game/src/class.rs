@@ -256,6 +256,11 @@ impl Class {
                 (g::Axis::LeftStickY, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
                 (g::Axis::LeftStickY, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
 
+                (g::Axis::RightStickX, _, PlayerState::Attacking(_)) => {},
+                (g::Axis::RightStickY, _, PlayerState::Attacking(_)) => {},
+
+                (g::Axis::RightStickX, _, _) if (value.clone() != 0.0) => {script.facing.x = -*value;},
+                (g::Axis::RightStickY, _, _) if (value.clone() != 0.0) => {script.facing.y = *value;},
                 _ => (),
             }
         } else {println!("didn't get rigidbody");} 
