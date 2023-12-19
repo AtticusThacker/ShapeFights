@@ -28,7 +28,7 @@ use fyrox::{
                 ColliderShape, 
                 ColliderBuilder,
                 CuboidShape,
-
+                TriangleShape,
             },
             joint,
             joint::*
@@ -123,7 +123,40 @@ impl Class {
     const RCOOL:i32 = 60;
 
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
+
+        //setting up the "facing chevron"
+        let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
+        let mut off = script.facing.clone();
+        off.set_magnitude(0.25);
+        trans.offset(off);
+        let chevron = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+            RectangleBuilder::new(
+                BaseBuilder::new().with_local_transform(
+                    TransformBuilder::new()
+                        // Size of the rectangle is defined only by scale.
+                        .with_local_scale(Vector3::new(0.25,-0.25,0.1))
+                        .build()
+                )
+            )
+            .with_texture(context.resource_manager.request::<Texture, _>("data/chevron.png"))
+            .build(&mut context.scene.graph),
+            ColliderBuilder::new(BaseBuilder::new())
+                    .with_shape(fyrox::scene::dim2::collider::ColliderShape::Triangle(TriangleShape{
+                        a: Vector2::new(0.0,0.25),
+                        b: Vector2::new(-0.15,0.0),
+                        c: Vector2::new(0.15,0.0),
+                    }))
+                    .with_sensor(true)
+                    .build(&mut context.scene.graph),
+            ])
+            .with_local_transform(trans)
+        )
+        .with_body_type(RigidBodyType::KinematicPositionBased)
+        .build(&mut context.scene.graph);
+
+        context.scene.graph.link_nodes(chevron, context.handle);
         
+        //setting up melee weapon
         if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>() {
             let weapontype = match self {
                 Class::Barbarian => Self::BARBWEP,
