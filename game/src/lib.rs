@@ -226,6 +226,16 @@ pub struct Game {
     gils: Gilrs,
     players: HashMap<g::GamepadId, Handle<Node>>,
     id_list: Vec::<GamepadId>,
+    player_text1: Handle<UiNode>,
+    player_text2: Handle<UiNode>,
+    player_text3: Handle<UiNode>,
+    player_text4: Handle<UiNode>,
+    text1: Handle<UiNode>,
+    text2: Handle<UiNode>,
+    text3: Handle<UiNode>,
+    text4: Handle<UiNode>,
+    //ctx: UserInterface,
+    //HEALTH_TXT: String,
 }
 use gilrs::GamepadId;
 impl Game {
@@ -235,16 +245,23 @@ impl Game {
             .request(scene_path.unwrap_or("data/scene.rgs"));
 
         Self {
+            //ctx: context.user_interface,
             scene: Handle::NONE,
             gils: Gilrs::new().unwrap(),
             players: HashMap::new(),
             id_list: Vec::<GamepadId>::new(),
+            player_text1: create_text_with_background_1(context.user_interface, "health:", 100.0, 1000.0),
+            player_text2: create_text_with_background_2(context.user_interface, "health:", 300.0, 1000.0),
+            player_text3: create_text_with_background_3(context.user_interface, "health:", 500.0, 1000.0),
+            player_text4: create_text_with_background_4(context.user_interface, "health:", 700.0, 1000.0),
+            text1: create_text_with_background_1(context.user_interface, "", 175.0, 1000.0),
+            text2: create_text_with_background_2(context.user_interface, "", 375.0, 1000.0),
+            text3: create_text_with_background_3(context.user_interface, "", 575.0, 1000.0),
+            text4: create_text_with_background_4(context.user_interface, "", 775.0, 1000.0),
+            //HEALTH_TXT: "health:".to_string(),
         }
-
     }
 }
-
-
 
 impl Plugin for Game {
 
@@ -311,26 +328,27 @@ impl Plugin for Game {
         // changes the number of xs in the health status bar
         // this has not been tested yet so idk if it works
         let ctx = &mut context.user_interface;
-        let health_txt = "health:";
+        // let health_txt = "health:";
         let mut text = "".to_string();
+        
 
         // create text/border widgets with visibility off
-        let player_text1: Handle<UiNode> = create_text_with_background_1(ctx, health_txt, 100.0, 1000.0);
-        let player_text2: Handle<UiNode> = create_text_with_background_2(ctx, health_txt, 300.0, 1000.0);
-        let player_text3: Handle<UiNode> = create_text_with_background_3(ctx, health_txt, 500.0, 1000.0);
-        let player_text4: Handle<UiNode> = create_text_with_background_4(ctx, health_txt, 700.0, 1000.0);
+        // let player_text1: Handle<UiNode> = create_text_with_background_1(ctx, health_txt, 100.0, 1000.0);
+        // let player_text2: Handle<UiNode> = create_text_with_background_2(ctx, health_txt, 300.0, 1000.0);
+        // let player_text3: Handle<UiNode> = create_text_with_background_3(ctx, health_txt, 500.0, 1000.0);
+        // let player_text4: Handle<UiNode> = create_text_with_background_4(ctx, health_txt, 700.0, 1000.0);
 
-        let mut text1 = create_text_with_background_1(ctx, text.as_str(), 175.0, 1000.0);
-        let mut text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
-        let mut text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
-        let mut text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
+        // let mut text1 = create_text_with_background_1(ctx, text.as_str(), 175.0, 1000.0);
+        // let mut text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
+        // let mut text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
+        // let mut text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
 
         // for player 1
         if self.players.len() > 0 {
             // creates health variable here
             let mut h: u32 = 10;
 
-            ctx.build_ctx()[player_text1.clone()].set_visibility(true);
+            ctx.build_ctx()[self.player_text1.clone()].set_visibility(true);
 
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[0]) {
@@ -351,15 +369,15 @@ impl Plugin for Game {
                 i = i+1;
             }
 
-            text1 = create_text_with_background_1(ctx, text.as_str(), 175.0, 1000.0);
-            ctx.build_ctx()[text1.clone()].set_visibility(true);
+            self.text1 = create_text_with_background_1(ctx, text.as_str(), 175.0, 1000.0);
+            ctx.build_ctx()[self.text1.clone()].set_visibility(true);
         }
 
         // player 2
         if self.players.len() > 1 {
             // creates health variable here
             let mut h: u32 = 10;
-            ctx.build_ctx()[player_text2.clone()].set_visibility(true);
+            ctx.build_ctx()[self.player_text2.clone()].set_visibility(true);
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[1]) {
                 // gets the node
@@ -378,15 +396,15 @@ impl Plugin for Game {
                 text = text.to_owned() + "x";
                 i = i+1;
             }
-            text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
-            ctx.build_ctx()[text2.clone()].set_visibility(true);
+            self.text2 = create_text_with_background_2(ctx, text.as_str(), 375.0, 1000.0);
+            ctx.build_ctx()[self.text2.clone()].set_visibility(true);
         }
 
         // player 3
         if self.players.len() > 2 {
             // creates health variable here
             let mut h: u32 = 10;
-            ctx.build_ctx()[player_text3.clone()].set_visibility(true);
+            ctx.build_ctx()[self.player_text3.clone()].set_visibility(true);
             // let playerText3: Handle<UiNode> = create_text_with_background_2(ctx, health_txt, 500.0, 1000.0);
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[2]) {
@@ -407,15 +425,15 @@ impl Plugin for Game {
                 i = i+1;
             }
 
-            text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
-            ctx.build_ctx()[text3.clone()].set_visibility(true);
+            self.text3 = create_text_with_background_3(ctx, text.as_str(), 575.0, 1000.0);
+            ctx.build_ctx()[self.text3.clone()].set_visibility(true);
         }
 
         // player 4
         if self.players.len() > 3 {
             // creates health variable here
             let mut h = 10;
-            ctx.build_ctx()[player_text4.clone()].set_visibility(true);
+            ctx.build_ctx()[self.player_text4.clone()].set_visibility(true);
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[3]) {
                 // gets the node
@@ -435,8 +453,8 @@ impl Plugin for Game {
                 i = i+1;
             }
 
-            text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
-            ctx.build_ctx()[text4.clone()].set_visibility(true);
+            self.text4 = create_text_with_background_4(ctx, text.as_str(), 775.0, 1000.0);
+            ctx.build_ctx()[self.text4.clone()].set_visibility(true);
         }
     }
 
