@@ -333,21 +333,36 @@ impl Class {
                         //for each active contact
                         if i.has_any_active_contact {
                             //find its parent
-                            if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
+                            if let Some((target,t)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.try_get_script::<Player>().is_some()) {
+                                if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
                                 let mut knockvec = script.facing.clone();
-                                knockvec.set_magnitude(knock);
-                                ctx.message_sender.send_to_target(phandle, Message::Hit{
+                                knockvec.set_magnitude(3.0);
+                                ctx.message_sender.send_to_target(target, Message::Hit{
                                     damage: dam, 
                                     knockback: knockvec,
                                     body: phandle.clone(),
-                                    sender: ctx.handle.clone(),
+                                    sender: ctx.handle.clone()
                                 });
+                                match script.class {
+                                    Class::Fighter if script.charges < 3 => {script.charges +=1},
+                                    _ =>()
+                                }
+                            // }
+                            // if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
+                            //     let mut knockvec = script.facing.clone();
+                            //     knockvec.set_magnitude(knock);
+                            //     ctx.message_sender.send_to_target(phandle, Message::Hit{
+                            //         damage: dam, 
+                            //         knockback: knockvec,
+                            //         body: phandle.clone(),
+                            //         sender: ctx.handle.clone(),
+                            //     });
                                 // if let Some(s) = p.as_rigid_body2d().script() {
                                 //     if let Some(s) = s.cast::<Player>() {
                                 //         println!("hit a player!");
                                 //         ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
                                 //     }
-                                // }
+                                }// }
                             }
                         }
                     }
@@ -355,10 +370,12 @@ impl Class {
 
 
                 if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    if weapon.visibility() {
                     //rotate the weapon equal to the weapon speed constant
                     let currotation = weapon.local_transform().rotation().clone();
                     weapon.local_transform_mut().set_rotation(currotation.append_axisangle_linearized(
                         &(&Vector3::z() * spd)));
+                    }
                 }
             }
             //advance the current frame
@@ -493,77 +510,8 @@ impl Class {
                                 ctx.message_sender.send_to_target(phandle, Message::Hit{
                                     damage: 3 * Self::ROGDAM, 
                                     knockback: knockvec,
-                                    body: phandle.clone()
-                                });
-                                // if let Some(s) = p.as_rigid_body2d().script() {
-                                //     if let Some(s) = s.cast::<Player>() {
-                                //         println!("hit a player!");
-                                //         ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
-                                //     }
-                                // }
-                            }
-                        }
-                    }
-                }
-
-
-                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
-                    //rotate the weapon equal to the weapon speed constant
-                    //let curoffset = weapon.local_transform().scaling_offset().clone();
-                    weapon.local_transform_mut().offset(Vector3::new(0.0, 0.1, 0.0));
-                }
-            }
-        }
-        else {
-            script.state = Idle;
-            //make weapon invisible
-            if let Some(wephandle) = script.weapon {
-                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
-                    weapon.set_visibility(false);
-                    //return weapon to starting rotation 
-                    weapon.local_transform_mut()
-                        .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
-                    weapon.local_transform_mut().offset(Vector3::new(0.0, -1.0, 0.0));
-                }
-            }
-        }
-    }
-
-    pub fn riposte(&self, script: &mut Player, sender:Handle<Node>, ctx: &mut ScriptMessageContext) {
-        let atk = match script.state {
-            PlayerState::Idle => true,
-            _ => false
-        };
-
-        if let Some(weapon) = ctx.scene.graph[script.weapon.unwrap().clone()].cast_mut::<RigidBody>(){
-            weapon.local_transform_mut().set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), 0.0));
-            weapon.set_visibility(true);
-        }
-
-        script.state = PlayerState::Riposting;
-        script.cooldown = 0;
-    }
-
-    pub fn riposting(&self, script: &mut Player, ctx: &mut ScriptContext) {
-        
-        if script.cooldown < 10 {
-            if let Some(wephandle) = script.weapon {
-                //check for a hit:
-                //find the collider of the weapon
-                if let Some((_,colnode)) = ctx.scene.graph.find(wephandle, &mut |c| c.is_collider2d()) {
-                    let collider = colnode.as_collider2d();
-                    // iterate over collisions
-                    for i in collider.intersects(&ctx.scene.graph.physics2d) {
-                        //for each active contact
-                        if i.has_any_active_contact {
-                            //find its parent
-                            if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
-                                let mut knockvec = script.facing.clone();
-                                knockvec.set_magnitude(Self::ROGKNOCK);
-                                ctx.message_sender.send_to_target(phandle, Message::Hit{
-                                    damage: 3 * Self::ROGDAM, 
-                                    knockback: knockvec,
-                                    body: phandle.clone()
+                                    body: phandle.clone(),
+                                    sender: ctx.handle.clone()
                                 });
                                 // if let Some(s) = p.as_rigid_body2d().script() {
                                 //     if let Some(s) = s.cast::<Player>() {
@@ -609,6 +557,9 @@ impl Class {
                         ctx.message_sender.send_to_target(sender, Message::Parried{});
                         script.state = PlayerState::Idle;
                         //put weapon away
+                        if let Some((chandle, _)) = ctx.scene.graph.find(script.weapon.unwrap().clone(), &mut |c| c.is_collider2d()) {
+                            ctx.scene.graph[chandle.clone()].as_collider2d_mut().set_is_sensor(true);
+                        }
                         if let Some(weapon) = ctx.scene.graph[script.weapon.clone().unwrap()].cast_mut::<RigidBody>(){
                             weapon.set_visibility(false);
                             //return weapon to starting rotation 
@@ -616,6 +567,9 @@ impl Class {
                                 .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
                         }
                     } else {
+                        if let Some((chandle, _)) = ctx.scene.graph.find(script.weapon.unwrap().clone(), &mut |c| c.is_collider2d()) {
+                            ctx.scene.graph[chandle.clone()].as_collider2d_mut().set_is_sensor(true);
+                        }
                         //take a hit
                         script.state = PlayerState::Hit(0);
                         if script.health <= dam {
@@ -702,7 +656,10 @@ impl Class {
         //change state to parrying
         script.state = PlayerState::Parry(0);
 
-        //move blade in front and make visible
+        //move blade in front and make visible / collidable
+        if let Some((chandle, _)) = context.scene.graph.find(script.weapon.unwrap().clone(), &mut |c| c.is_collider2d()) {
+            context.scene.graph[chandle.clone()].as_collider2d_mut().set_is_sensor(false);
+        }
         let mut weapnode = &mut context.scene.graph[script.weapon.unwrap().clone()];
         weapnode.set_visibility(true);
         if let Some(weapon) = weapnode.cast_mut::<RigidBody>(){
@@ -723,6 +680,9 @@ impl Class {
             script.state = PlayerState::Parry(17);
         } else if frame == 28 {
             script.state = PlayerState::Idle;
+            if let Some((chandle, _)) = context.scene.graph.find(script.weapon.unwrap().clone(), &mut |c| c.is_collider2d()) {
+                context.scene.graph[chandle.clone()].as_collider2d_mut().set_is_sensor(true);
+            }
         }  else {
             script.state = PlayerState::Parry(frame+1);
         }
@@ -730,7 +690,13 @@ impl Class {
     }
 
     pub fn parried(&self, script: &mut Player, context: &mut ScriptMessageContext) {
-        if let PlayerState::Attacking(_) = script.state {
+        let success = match script.state {
+            PlayerState::Attacking(_) => true,
+            PlayerState::Riposting => true,
+            _ => false,
+        };
+
+        if success {
 
             //fix weapon
             if let Some(wephandle) = script.weapon {
