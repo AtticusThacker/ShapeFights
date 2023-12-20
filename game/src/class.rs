@@ -75,16 +75,16 @@ pub enum Class {
 
 impl Class {
     //speed of normal movement
-    const BARBSPD:f32 = 1.0;
-    const ROGSPD:f32 = 2.0;
-    const WIZSPD:f32 = 1.0;
-    const FIGSPD:f32 = 1.0;
+    const BARBSPD:f32 = 2.5;
+    const ROGSPD:f32 = 5.0;
+    const WIZSPD:f32 = 2.5;
+    const FIGSPD:f32 = 4.0;
 
     //shape of weapon (each number is half of the length of one of the sides)
-    const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
-    const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
-    const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
-    const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.35)};
+    const BARBWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.2,0.35)};
+    const ROGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.3)};
+    const WIZWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.05,0.3)};
+    const FIGWEP:CuboidShape = CuboidShape{half_extents: Vector2::new(0.1,0.45)};
 
     //number of frames in melee attack
     const BARBINT:i32 = 15;
@@ -119,8 +119,12 @@ impl Class {
     //ranged attack speed scalar
     const RATKSPD:f32 = 3.0;
 
-    //ranged attack speed cooldown (in frames)
+    //special attack speed cooldown (in frames)
     const RCOOL:i32 = 60;
+    const CCOOL:i32 = 300;
+
+    //charge length (frames)
+    const CHARLEN:i32 = 8;
 
     //hitstun duration (frames)
     const HITDUR: i32 = 30;
@@ -194,7 +198,11 @@ impl Class {
             //set the player's weapon field to this node we've just made
             script.weapon = Some(weapon.clone());
 
-
+            let offset = match self {
+                Class::Barbarian => 1.0,
+                Class::Fighter => 1.0,
+                _ => 0.65
+            };
 
             context.scene.graph[weapon.clone()].set_visibility(false);
             //set weapon to be a child of the player
@@ -208,9 +216,9 @@ impl Class {
                 starting_transform.set_rotation(UnitQuaternion::from_axis_angle(&axis, -(std::f32::consts::FRAC_PI_2)))
                     //these should always be negatives of each other in x and y coords.
                     //this sets the position relative to the player
-                    .set_position(Vector3::new(0.0,0.75,0.0))
+                    .set_position(Vector3::new(0.0, offset,0.0))
                     //this sets the position of the rotation pivot (the thing it rotates around) to the center of the player
-                    .set_rotation_pivot(Vector3::new(0.0,-0.75,0.0));
+                    .set_rotation_pivot(Vector3::new(0.0,-offset,0.0));
                 
                 weapon.set_local_transform(starting_transform);
             }
@@ -246,6 +254,7 @@ impl Class {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
             match (axis, self, script.state.clone()) {
                 (_, _, PlayerState::Hit(_)) => {}, //cant move when hit
+                (_, _, PlayerState::Charging) => {} //cant change direction while charging
 
                 (g::Axis::LeftStickX, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::BARBSPD, rigid_body.lin_vel().y));},
                 (g::Axis::LeftStickX, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Self::ROGSPD, rigid_body.lin_vel().y));},
@@ -278,7 +287,13 @@ impl Class {
 
 
     pub fn start_melee_attack(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
-        if let Idle = script.state{
+        let atk = match script.state {
+            PlayerState::Idle => true,
+            PlayerState::Charging => true,
+            _ => false
+        };
+        
+        if atk {
             script.state = Attacking(1);
             if let Some(wephandle) = script.weapon {
                 if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
@@ -289,9 +304,15 @@ impl Class {
     }
 
     pub fn cont_attack(&self, script: &mut Player, frame: i32, ctx: &mut ScriptContext) {
+        let barbdam = match script.state {
+            PlayerState::Charging => 2 * Self::BARBDAM,
+            _ => Self::BARBDAM,
+        };
+        
+        
         //match for attack constants
         let (interval, lag, spd, dam, knock) = match self {
-            Class::Barbarian => (Self::BARBINT, Self::BARBLAG, Self::BARBWEPSPD, Self::BARBDAM, Self::BARBKNOCK),
+            Class::Barbarian => (Self::BARBINT, Self::BARBLAG, Self::BARBWEPSPD, barbdam, Self::BARBKNOCK),
             Class::Rogue => (Self::ROGINT, Self::ROGLAG, Self::ROGWEPSPD, Self::ROGDAM, Self::ROGKNOCK),
             Class::Wizard => (Self::WIZINT, Self::WIZLAG, Self::WIZWEPSPD, Self::WIZDAM, Self::WIZKNOCK),
             Class::Fighter => (Self::FIGINT, Self::FIGLAG, Self::FIGWEPSPD, Self::FIGDAM, Self::FIGKNOCK),
@@ -358,27 +379,16 @@ impl Class {
     }
 
     pub fn projectiles(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
-        // let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
-        //             RectangleBuilder::new(
-        //                 BaseBuilder::new().with_local_transform(
-        //                     TransformBuilder::new()
-        //                         // Size of the rectangle is defined only by scale.
-        //                         .with_local_scale(Vector3::new(0.4, 0.2, 1.0))
-        //                         .build(),
-        //                 ),
-        //             )
-        //             .with_texture(ctx.resource_manager.request::<Texture, _>("data/rcircle.png"))
-        //             .build(&mut ctx.scene.graph),
-        //                 // Rigid body must have at least one collider
-        //                 ColliderBuilder::new(BaseBuilder::new())
-        //                     .with_shape(ColliderShape::cuboid(0.5, 0.5))
-        //                     .with_sensor(true)
-        //                     .build(&mut ctx.scene.graph),
-        //             ]))
-        //         .with_body_type(RigidBodyType::KinematicVelocityBased)
-        //         .build(&mut ctx.scene.graph);
-
-        if (script.cooldown > Self::RCOOL && script.state == Idle) {
+        let range_atk = match self{
+            Class::Barbarian => {self.start_charge(script, ctx); return()}
+            Class::Rogue => return(),
+            Class::Fighter if script.charges > 0 => {script.charges -= 1; true}
+            Class::Fighter => return(),
+            Class::Wizard => true
+        };
+        
+        
+        if (script.cooldown > Self::RCOOL && script.state == Idle && range_atk) {
             let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
             // let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
             trans.offset(script.facing.clone());
@@ -416,21 +426,32 @@ impl Class {
                         Projectile{}
                         );
 
-
-
-
-
-            //ctx.scene.graph.link_nodes(proj, ctx.handle);
-
-            // if let Some(rigid_body) = ctx.scene.graph[proj.clone()].cast_mut::<RigidBody>() {
-            //     rigid_body.set_lin_vel(Vector2::new(dirvec[0], dirvec[1]));
-            // }
             script.cooldown = 0
         }
     }
 
+    pub fn start_charge(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
+        if script.cooldown > Self::CCOOL {
+            script.state = PlayerState::Charging;
+            
+            let mut norm_facing = script.facing.clone();
+            norm_facing.set_magnitude(1.0);
 
+            if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+                rigid_body.set_lin_vel(Vector2::new(norm_facing[0]*6.0*Self::BARBSPD, norm_facing[1]*6.0*Self::BARBSPD));
+            }
+            script.cooldown = 0;
+        }
+    }
 
+    pub fn charging(&self, script: &mut Player, ctx: &mut ScriptContext) {
+        if script.cooldown >= Self::CHARLEN {
+            if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+                rigid_body.set_lin_vel(Vector2::new(0.0, 0.0));
+            }
+            script.state = PlayerState::Idle;
+        }
+    }
 
     pub fn takehit(&self, script: &mut Player, dam: i32, knock: Vector3<f32>, bod: Handle<Node>, ctx: &mut ScriptMessageContext) {
         //check if hit is valid
