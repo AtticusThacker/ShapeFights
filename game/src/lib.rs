@@ -191,7 +191,7 @@ fn create_joint(graph: &mut Graph, body1: Handle<Node>, body2: Handle<Node>) -> 
         .build(graph)
 }
 
-fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<Node> {
+fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager, color: &Vec<u8>) -> Handle<Node> {
     RectangleBuilder::new(
         BaseBuilder::new().with_local_transform(
             TransformBuilder::new()
@@ -201,7 +201,7 @@ fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager) -> Handle<
         ),
     )
     .with_texture(resource_manager.request::<Texture, _>("data/White_star.png"))
-    .with_color(Color{r:0, g:255, b:127, a:255})
+    .with_color(Color{r: color[0], g: color[1], b: color[2], a: 255})
     .build(graph)
 }
 
@@ -235,6 +235,7 @@ pub struct Game {
     text2: Handle<UiNode>,
     text3: Handle<UiNode>,
     text4: Handle<UiNode>,
+    count: i8,
     //ctx: UserInterface,
     //HEALTH_TXT: String,
 }
@@ -259,6 +260,7 @@ impl Game {
             text2: create_text_with_background_2(context.user_interface, "", 375.0, 1000.0),
             text3: create_text_with_background_3(context.user_interface, "", 575.0, 1000.0),
             text4: create_text_with_background_4(context.user_interface, "", 775.0, 1000.0),
+            count: 1,
             //HEALTH_TXT: "health:".to_string(),
         }
     }
@@ -287,33 +289,34 @@ impl Plugin for Game {
             //matching on the event type 
             match event {
                 Connected => {
-                    //NOTE on these; context has a field scenes which is a scenecontainer
-                    // and scenecontainer can be indexed by Handle<Scene>, which is what self.scene is.
-                    // then, graph can be indexed by a Handle<Node>>, to get a dynamic object that we
-                    // have to 'downcast' using the .cast_mut thingy to get the actual player object.
-                    // its complicated i know, but it works!
+                    // //NOTE on these; context has a field scenes which is a scenecontainer
+                    // // and scenecontainer can be indexed by Handle<Scene>, which is what self.scene is.
+                    // // then, graph can be indexed by a Handle<Node>>, to get a dynamic object that we
+                    // // have to 'downcast' using the .cast_mut thingy to get the actual player object.
+                    // // its complicated i know, but it works!
 
-                    //create a new player
-                    let player_handle = create_cube_rigid_body(&mut context.scenes[self.scene].graph);
-                    //create a sprite for the player
-                    let sprite_handle = create_rect(&mut context.scenes[self.scene].graph, context.resource_manager);
-                    //make the sprite a child of the player
-                    context.scenes[self.scene].graph.link_nodes(sprite_handle, player_handle);
-                    //add the player to the game's struct
-                    self.players.insert(id, player_handle);
-                    // add player ID to vector of IDs
-                    self.id_list.push(id);
+                    // //create a new player
+                    // let player_handle = create_cube_rigid_body(&mut context.scenes[self.scene].graph);
+                    // //create a sprite for the player
+                    // let sprite_handle = create_rect(&mut context.scenes[self.scene].graph, context.resource_manager, &Vec::<u8>::from([0, 255, 255]));
+                    // //make the sprite a child of the player
+                    // context.scenes[self.scene].graph.link_nodes(sprite_handle, player_handle);
+                    // //add the player to the game's struct
+                    // self.players.insert(id, player_handle);
+                    // // add player ID to vector of IDs
+                    // self.id_list.push(id);
 
-                    //adds script player to object
-                    set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
-                        Player{
-                            class: Class::Rogue,
-                            state: PlayerState::Idle,
-                            weapon: None,
-                                cooldown: 0,
-                                facing: Vector3::new(0.0,1.0,0.0),
-                            health: 10,
-                        })
+                    // //adds script player to object
+                    // set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
+                    //     Player{
+                    //         class: Class::Rogue,
+                    //         state: PlayerState::Idle,
+                    //         weapon: None,
+                    //             cooldown: 0,
+                    //             facing: Vector3::new(0.0,1.0,0.0),
+                    //         health: 10,
+                    //     })
+                    create_player(self.count, 1, id, context, self);
 
                 },
                 //send the controller event to the player
@@ -613,4 +616,96 @@ impl ScriptTrait for Projectile {
     fn id(&self) -> Uuid {
         Self::type_uuid()
     }
+}
+
+fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
+    let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
+
+    if player_num == 1 {
+        player_data.0 = Vec::from([66, 245, 158]);
+        player_data.1 = Vec::from([0.0, 0.0, 0.0]);
+    }
+    else if player_num == 2 {
+        player_data.0 = Vec::from([66, 167, 245]);
+        player_data.1 = Vec::from([10.0, 10.0, 0.0]);
+    }
+    else if player_num == 3 {
+        player_data.0 = Vec::from([194, 136, 252]);
+        player_data.1 = Vec::from([10.0, -10.0, 0.0]);
+    }
+    else if player_num == 4 {
+        player_data.0 = Vec::from([250, 135, 215]);
+        player_data.1 = Vec::from([-10.0, -10.0, 0.0]);
+    }
+    else {
+        println!("Player cap reached");
+        return;
+    }
+
+    //create a new player
+    let player_handle = create_cube_rigid_body(&mut context.scenes[game.scene].graph);
+    //create a sprite for the player
+    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0);
+    //make the sprite a child of the player
+    context.scenes[game.scene].graph.link_nodes(sprite_handle, player_handle);
+    //add the player to the game's struct
+    game.players.insert(id, player_handle);
+    // add player ID to vector of IDs
+    game.id_list.push(id);
+
+    //adds script player to object
+    if player_class == 1 {
+        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+        Player{
+            class: Class::Barbarian,
+            state: PlayerState::Idle,
+            weapon: None,
+                cooldown: 0,
+                facing: Vector3::new(0.0,1.0,0.0),
+            health: 10,
+        })
+    }
+    else if player_class == 2 {
+        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+        Player{
+            class: Class::Fighter,
+            state: PlayerState::Idle,
+            weapon: None,
+                cooldown: 0,
+                facing: Vector3::new(0.0,1.0,0.0),
+            health: 10,
+        })
+    }
+    else if player_class == 3 {
+        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+        Player{
+            class: Class::Rogue,
+            state: PlayerState::Idle,
+            weapon: None,
+                cooldown: 0,
+                facing: Vector3::new(0.0,1.0,0.0),
+            health: 10,
+        })
+    }
+    else if player_class == 4 {
+        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+        Player{
+            class: Class::Wizard,
+            state: PlayerState::Idle,
+            weapon: None,
+                cooldown: 0,
+                facing: Vector3::new(0.0,1.0,0.0),
+            health: 10,
+        })
+    }
+    else {
+        println!("That is not a valid class");
+        return();
+    }
+
+    context.scenes[game.scene].graph[player_handle.clone()]
+        .local_transform_mut()
+        .set_position(Vector3::new(player_data.1[0], player_data.1[1], player_data.1[2]));
+
+    game.count += 1;
 }
