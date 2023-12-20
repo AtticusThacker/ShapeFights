@@ -330,7 +330,7 @@
     ),
     windows: (
         window_position: (0.0, 0.0),
-        window_size: (1920.0, 1111.0),
+        window_size: (1730.0, 894.0),
         layout: None,
     ),
 )
