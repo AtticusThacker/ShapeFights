@@ -74,7 +74,7 @@ pub mod messages;
 
 use messages::{
     Message,
-    Message::{Controller, Hit},
+    Message::{Controller, Hit, Parried},
 };
 use class::Class;
 
@@ -1087,6 +1087,7 @@ pub enum PlayerState {
     //the field holds the number of frames the player is into the action
     Attacking(i32),
     Hit(i32),
+    Parry(i32),
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -1127,7 +1128,9 @@ impl ScriptTrait for Player {
         match self.state {
             PlayerState::Dead => return(),
             PlayerState::Attacking(frame) => {self.class.clone().cont_attack(self, frame, context)},
-            PlayerState::Hit(frame) => {self.class.clone().cont_hit(self, frame, context)},            PlayerState::Charging => {self.class.clone().charging(self, context)}
+            PlayerState::Hit(frame) => {self.class.clone().cont_hit(self, frame, context)},
+            PlayerState::Charging => {self.class.clone().charging(self, context)},
+            PlayerState::Parry(frame) => {self.class.clone().cont_parry(self, frame, context)},
             _ => (),
         }
 
@@ -1165,13 +1168,16 @@ impl ScriptTrait for Player {
                         ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
                         //projectiles
                         ButtonPressed(LeftTrigger, _) => self.class.clone().projectiles(self, ctx),
+                        //parrying
+                        ButtonPressed(RightThumb, _) => self.class.clone().parry(self, ctx),
                         _ => (),
                     }
                 },
 
-                Hit{damage: dam, knockback: knock, body: bod} => {
-                    self.class.clone().takehit(self, dam.clone(), knock.clone(), bod.clone(), ctx);
-                }
+                Hit{damage: dam, knockback: knock, body: bod, sender: send} => {
+                    self.class.clone().takehit(self, dam.clone(), knock.clone(), bod.clone(), send.clone(), ctx);
+                },
+                Parried{} => {self.class.clone().parried(self, ctx)},
                 _ => (),
             }
         }
@@ -1235,7 +1241,8 @@ impl ScriptTrait for Projectile {
                         ctx.message_sender.send_to_target(target, Message::Hit{
                             damage: 3, 
                             knockback: knockvec,
-                            body: target.clone()
+                            body: target.clone(),
+                            sender: ctx.handle.clone()
                         });
                     }
                     self.hit = true;   
@@ -1254,6 +1261,11 @@ impl ScriptTrait for Projectile {
         Self::type_uuid()
     }
 }
+
+
+
+
+
 
 fn create_player(player_num: i8, player_class: Class, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
     let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
@@ -1349,56 +1361,6 @@ fn create_player(player_num: i8, player_class: Class, id: GamepadId, context: &m
         })
         }
     }
-
-    // //adds script player to object
-    // if player_class == 1 {
-    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-    //     Player{
-    //         class: Class::Barbarian,
-    //         state: PlayerState::Idle,
-    //         weapon: None,
-    //             cooldown: 0,
-    //             facing: Vector3::new(0.0,1.0,0.0),
-    //         health: 10,
-    //         charges: 0,
-    //     })
-    // }
-    // else if player_class == 2 {
-    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-    //     Player{
-    //         class: Class::Fighter,
-    //         state: PlayerState::Idle,
-    //         weapon: None,
-    //             cooldown: 0,
-    //             facing: Vector3::new(0.0,1.0,0.0),
-    //         health: 10,
-    //         charges: 0,
-    //     })
-    // }
-    // else if player_class == 3 {
-    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-    //     Player{
-    //         class: Class::Rogue,
-    //         state: PlayerState::Idle,
-    //         weapon: None,
-    //             cooldown: 0,
-    //             facing: Vector3::new(0.0,1.0,0.0),
-    //         health: 10,
-    //         charges: 0,
-    //     })
-    // }
-    // else if player_class == 4 {
-    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-    //     Player{
-    //         class: Class::Wizard,
-    //         state: PlayerState::Idle,
-    //         weapon: None,
-    //             cooldown: 0,
-    //             facing: Vector3::new(0.0,1.0,0.0),
-    //         health: 10,
-    //         charges: 0,
-    //     })
-    // }
 
     context.scenes[game.scene].graph[player_handle.clone()]
         .local_transform_mut()

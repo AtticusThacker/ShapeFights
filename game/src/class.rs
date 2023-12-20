@@ -61,7 +61,7 @@ use fyrox::script::Script;
 
 use crate::messages::{
     Message,
-    Message::{Controller, Hit as MessHit},
+    Message::{Controller, Hit as MessHit, Parried},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]
@@ -266,8 +266,11 @@ impl Class {
                 (g::Axis::LeftStickY, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::WIZSPD));},
                 (g::Axis::LeftStickY, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Self::FIGSPD));},
 
+                //can't turn while attacking or parrying
                 (g::Axis::RightStickX, _, PlayerState::Attacking(_)) => {},
                 (g::Axis::RightStickY, _, PlayerState::Attacking(_)) => {},
+                (g::Axis::RightStickX, _, PlayerState::Parry(_)) => {},
+                (g::Axis::RightStickY, _, PlayerState::Parry(_)) => {},
 
                 (g::Axis::RightStickX, _, _) if (value.clone() != 0.0) => {script.facing.x = -*value;},
                 (g::Axis::RightStickY, _, _) if (value.clone() != 0.0) => {script.facing.y = *value;},
@@ -336,7 +339,8 @@ impl Class {
                                 ctx.message_sender.send_to_target(phandle, Message::Hit{
                                     damage: dam, 
                                     knockback: knockvec,
-                                    body: phandle.clone()
+                                    body: phandle.clone(),
+                                    sender: ctx.handle.clone(),
                                 });
                                 // if let Some(s) = p.as_rigid_body2d().script() {
                                 //     if let Some(s) = s.cast::<Player>() {
@@ -454,11 +458,46 @@ impl Class {
         }
     }
 
-    pub fn takehit(&self, script: &mut Player, dam: u32, knock: Vector3<f32>, bod: Handle<Node>, ctx: &mut ScriptMessageContext) {
+    pub fn takehit(&self, script: &mut Player, dam: u32, knock: Vector3<f32>, bod: Handle<Node>, sender: Handle<Node>, ctx: &mut ScriptMessageContext) {
         //check if hit is valid
         if let Some((bhandle, b)) = ctx.scene.graph.find(ctx.handle.clone(), &mut |c| c.instance_id() == ctx.scene.graph[bod].instance_id()) {
             match script.state {
                 PlayerState::Hit(_) => {},
+                PlayerState::Parry(_) => {
+                    if bod == script.weapon.clone().unwrap() {
+                        ctx.message_sender.send_to_target(sender, Message::Parried{});
+                        script.state = PlayerState::Idle;
+                        //put weapon away
+                        if let Some(weapon) = ctx.scene.graph[script.weapon.clone().unwrap()].cast_mut::<RigidBody>(){
+                            weapon.set_visibility(false);
+                            //return weapon to starting rotation 
+                            weapon.local_transform_mut()
+                                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+                        }
+                    } else {
+                        //take a hit
+                        script.state = PlayerState::Hit(0);
+                        if script.health <= dam {
+                            self.die(script, ctx);
+                            script.health = 0;
+                        } else {
+                            script.health -= dam;
+                        }
+                        if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+                            rigid_body.set_lin_vel(Vector2::new(knock.x, knock.y));
+
+                            //fix weapon
+                            if let Some(wephandle) = script.weapon {
+                                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                                    weapon.set_visibility(false);
+                                    //return weapon to starting rotation 
+                                    weapon.local_transform_mut()
+                                        .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+                                }
+                            }
+                        }
+                    }
+                },
                 _ => {
                     //take a hit
                     script.state = PlayerState::Hit(0);
@@ -511,6 +550,57 @@ impl Class {
         script.state = PlayerState::Dead;
         context.scene.graph[context.handle.clone()].set_enabled(false);
         context.scene.graph[context.handle.clone()].set_visibility(false);
+    }
+
+
+    pub fn parry(&self, script: &mut Player, context: &mut ScriptMessageContext) {
+        match script.state {
+            PlayerState::Idle => (),
+            _ => {return;}
+        }
+        //change state to parrying
+        script.state = PlayerState::Parry(0);
+
+        //move blade in front and make visible
+        let mut weapnode = &mut context.scene.graph[script.weapon.unwrap().clone()];
+        weapnode.set_visibility(true);
+        if let Some(weapon) = weapnode.cast_mut::<RigidBody>(){
+            //rotate the weapon out in front
+            weapon.local_transform_mut().set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), 0.0));
+        }
+    }
+
+    pub fn cont_parry(&self, script: &mut Player, frame: i32, context: &mut ScriptContext) {
+        if frame == 16 {
+            //put blade away
+            if let Some(weapon) = context.scene.graph[script.weapon.clone().unwrap()].cast_mut::<RigidBody>(){
+                weapon.set_visibility(false);
+                //return weapon to starting rotation 
+                weapon.local_transform_mut()
+                    .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+            }
+            script.state = PlayerState::Parry(17);
+        } else if frame == 28 {
+            script.state = PlayerState::Idle;
+        }  else {
+            script.state = PlayerState::Parry(frame+1);
+        }
+
+    }
+
+    pub fn parried(&self, script: &mut Player, context: &mut ScriptMessageContext) {
+        if let PlayerState::Attacking(_) = script.state {
+
+            //fix weapon
+            if let Some(wephandle) = script.weapon {
+                if let Some(weapon) = context.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    weapon.set_visibility(false);
+                    //return weapon to starting rotation 
+                    weapon.local_transform_mut()
+                        .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+                }
+            }
+        }
     }
 
 }

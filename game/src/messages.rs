@@ -7,9 +7,13 @@ pub enum Message {
         damage: u32,
         knockback: Vector3<f32>,
         body: Handle<Node>,
+        sender: Handle<Node>,
     },
     Controller {
         event: EventType,
 
     },
+    Parried {
+        //can eventually hold boolean to tell projectiles to be reflected
+    }
 }
