@@ -128,7 +128,8 @@ impl Class {
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
 
         //setting up the "facing chevron"
-        let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
+        //let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
+        let mut trans = Transform::identity();
         let mut off = script.facing.clone();
         off.set_magnitude(0.3);
         trans.offset(off);

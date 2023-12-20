@@ -681,19 +681,19 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
 
     if player_num == 1 {
         player_data.0 = Vec::from([66, 245, 158]);
-        player_data.1 = Vec::from([0.0, 0.0, 0.0]);
+        player_data.1 = Vec::from([3.0, 3.0, 0.0]);
     }
     else if player_num == 2 {
         player_data.0 = Vec::from([66, 167, 245]);
-        player_data.1 = Vec::from([10.0, 10.0, 0.0]);
+        player_data.1 = Vec::from([-3.0, 3.0, 0.0]);
     }
     else if player_num == 3 {
         player_data.0 = Vec::from([194, 136, 252]);
-        player_data.1 = Vec::from([10.0, -10.0, 0.0]);
+        player_data.1 = Vec::from([-3.0, -3.0, 0.0]);
     }
     else if player_num == 4 {
         player_data.0 = Vec::from([250, 135, 215]);
-        player_data.1 = Vec::from([-10.0, -10.0, 0.0]);
+        player_data.1 = Vec::from([3.0, -3.0, 0.0]);
     }
     else {
         println!("Player cap reached");
