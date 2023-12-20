@@ -196,7 +196,7 @@ fn create_joint(graph: &mut Graph, body1: Handle<Node>, body2: Handle<Node>) -> 
         .build(graph)
 }
 
-fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager, color: &Vec<u8>) -> Handle<Node> {
+fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager, color: &Vec<u8>, shape: String) -> Handle<Node> {
     RectangleBuilder::new(
         BaseBuilder::new().with_local_transform(
             TransformBuilder::new()
@@ -205,7 +205,7 @@ fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager, color: &Ve
                 .build(),
         ),
     )
-    .with_texture(resource_manager.request::<Texture, _>("data/White_star.png"))
+    .with_texture(resource_manager.request::<Texture, _>(shape))
     .with_color(Color{r: color[0], g: color[1], b: color[2], a: 255})
     .build(graph)
 }
@@ -261,7 +261,7 @@ impl Game {
             player_text2: create_text_with_background_2(context.user_interface, "health:", 300.0, 100.0),
             player_text3: create_text_with_background_3(context.user_interface, "health:", 500.0, 100.0),
             player_text4: create_text_with_background_4(context.user_interface, "health:", 700.0, 100.0),
-            text1: create_text_with_background_1(context.user_interface, "test", 175.0, 100.0),
+            text1: create_text_with_background_1(context.user_interface, "", 175.0, 100.0),
             text2: create_text_with_background_2(context.user_interface, "", 375.0, 100.0),
             text3: create_text_with_background_3(context.user_interface, "", 575.0, 100.0),
             text4: create_text_with_background_4(context.user_interface, "", 775.0, 100.0),
@@ -321,7 +321,7 @@ impl Plugin for Game {
                     //             facing: Vector3::new(0.0,1.0,0.0),
                     //         health: 10,
                     //     })
-                    create_player(self.count, 1, id, context, self);
+                    create_player(self.count, self.count, id, context, self);
 
                 },
                 //send the controller event to the player
@@ -559,6 +559,7 @@ impl Plugin for Game {
 pub enum PlayerState {
     #[default]
     Idle,
+    Charging,
     //the field holds the number of frames the player is into the action
     Attacking(i32),
     Hit(i32),
@@ -572,6 +573,7 @@ pub struct Player{
     cooldown: i32,
     facing: Vector3<f32>, //z axis should always be 0.0 here!
     health: u32,
+    charges: i32,
 }
 
 impl_component_provider!(Player,);
@@ -600,9 +602,18 @@ impl ScriptTrait for Player {
     fn on_update(&mut self, context: &mut ScriptContext) {
         match self.state {
             PlayerState::Attacking(frame) => {self.class.clone().cont_attack(self, frame, context)},
-            PlayerState::Hit(frame) => {self.class.clone().cont_hit(self, frame, context)},
+            PlayerState::Hit(frame) => {self.class.clone().cont_hit(self, frame, context)},            PlayerState::Charging => {self.class.clone().charging(self, context)}
             _ => (),
         }
+
+        match self.class {
+            Class::Barbarian if self.cooldown == 8 => {
+                if let Some(rigid_body) = context.scene.graph[context.handle.clone()].cast_mut::<RigidBody>(){
+                    rigid_body.set_lin_vel(Vector2::new(0.0, 0.0));
+                }
+            }
+            _ => {},
+        };
 
         self.cooldown += 1;
         Class::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
@@ -714,24 +725,26 @@ impl ScriptTrait for Projectile {
     }
 }
 
-fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
+fn create_player(player_num: i8, player_class: i8, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
     let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
+
+    let shapes = Vec::from(["data/White_square.png", "data/White_circle.png", "data/White_triangle.png", "data/White_star.png"]);
 
     if player_num == 1 {
         player_data.0 = Vec::from([66, 245, 158]);
-        player_data.1 = Vec::from([3.0, 3.0, 0.0]);
+        player_data.1 = Vec::from([6.0, 3.0, 0.0]);
     }
     else if player_num == 2 {
         player_data.0 = Vec::from([66, 167, 245]);
-        player_data.1 = Vec::from([-3.0, 3.0, 0.0]);
+        player_data.1 = Vec::from([-6.0, 3.0, 0.0]);
     }
     else if player_num == 3 {
         player_data.0 = Vec::from([194, 136, 252]);
-        player_data.1 = Vec::from([-3.0, -3.0, 0.0]);
+        player_data.1 = Vec::from([-6.0, -3.0, 0.0]);
     }
     else if player_num == 4 {
         player_data.0 = Vec::from([250, 135, 215]);
-        player_data.1 = Vec::from([3.0, -3.0, 0.0]);
+        player_data.1 = Vec::from([6.0, -3.0, 0.0]);
     }
     else {
         println!("Player cap reached");
@@ -741,7 +754,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
     //create a new player
     let player_handle = create_cube_rigid_body(&mut context.scenes[game.scene].graph);
     //create a sprite for the player
-    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0);
+    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0, shapes[(player_class - 1) as usize].to_string());
     //make the sprite a child of the player
     context.scenes[game.scene].graph.link_nodes(sprite_handle, player_handle);
     //add the player to the game's struct
@@ -759,6 +772,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 10,
+            charges: 0,
         })
     }
     else if player_class == 2 {
@@ -770,6 +784,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 10,
+            charges: 0,
         })
     }
     else if player_class == 3 {
@@ -781,6 +796,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 10,
+            charges: 0,
         })
     }
     else if player_class == 4 {
@@ -792,6 +808,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 10,
+            charges: 0,
         })
     }
     else {
