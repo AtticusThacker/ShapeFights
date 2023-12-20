@@ -105,19 +105,19 @@ impl Class {
     const FIGWEPSPD:f32 = std::f32::consts::PI/20.0;
 
     //damage done by each class in melee; not implemented yet
-    const BARBDAM:i32 = 12;
-    const ROGDAM:i32 = 12;
-    const WIZDAM:i32 = 12;
-    const FIGDAM:i32 = 12;
+    const BARBDAM:u32 = 3;
+    const ROGDAM:u32 = 3;
+    pub const WIZDAM:u32 = 3;
+    const FIGDAM:u32 = 3;
 
     //knockback done by each class in melee; not implemented yet
     const BARBKNOCK:f32 = 3.0;
     const ROGKNOCK:f32 = 3.0;
-    const WIZKNOCK:f32 = 3.0;
+    pub const WIZKNOCK:f32 = 3.0;
     const FIGKNOCK:f32 = 3.0;
 
     //ranged attack speed scalar
-    const RATKSPD:f32 = 3.0;
+    const RATKSPD:f32 = 4.5;
 
     //ranged attack speed cooldown (in frames)
     const RCOOL:i32 = 60;
@@ -380,8 +380,9 @@ impl Class {
 
         if (script.cooldown > Self::RCOOL && script.state == Idle) {
             let mut trans = ctx.scene.graph[ctx.handle.clone()].local_transform().clone();
-            // let dirvec = trans.rotation().clone_inner().to_rotation_matrix() * Vector3::new(1.0,0.0,0.0);
-            trans.offset(script.facing.clone());
+            let mut dirvec = script.facing.clone();
+            dirvec.set_magnitude(1.25);
+            trans.offset(dirvec);
 
             let mut spd = Vector2::new(script.facing[0],script.facing[1]);
             spd.set_magnitude(Self::RATKSPD);
@@ -391,7 +392,7 @@ impl Class {
                     BaseBuilder::new().with_local_transform(
                         TransformBuilder::new()
                             // Size of the rectangle is defined only by scale.
-                            .with_local_scale(Vector3::new(0.4, 0.6, 1.0))
+                            .with_local_scale(Vector3::new(0.3, 0.5, 1.0))
                             .build()
                     )
                 )
@@ -413,7 +414,7 @@ impl Class {
             .build(&mut ctx.scene.graph);
 
             set_script(&mut ctx.scene.graph[proj.clone()], 
-                        Projectile{}
+                        Projectile{facing: script.facing.clone(), hit: false, life: 120}
                         );
 
 
@@ -432,7 +433,7 @@ impl Class {
 
 
 
-    pub fn takehit(&self, script: &mut Player, dam: i32, knock: Vector3<f32>, bod: Handle<Node>, ctx: &mut ScriptMessageContext) {
+    pub fn takehit(&self, script: &mut Player, dam: u32, knock: Vector3<f32>, bod: Handle<Node>, ctx: &mut ScriptMessageContext) {
         //check if hit is valid
         if let Some((bhandle, b)) = ctx.scene.graph.find(ctx.handle.clone(), &mut |c| c.instance_id() == ctx.scene.graph[bod].instance_id()) {
             match script.state {
@@ -440,8 +441,23 @@ impl Class {
                 _ => {
                     //take a hit
                     script.state = PlayerState::Hit(0);
+                    if script.health <= dam {
+                        self.die()
+                    } else {
+                        script.health -= dam;
+                    }
                     if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
                         rigid_body.set_lin_vel(Vector2::new(knock.x, knock.y));
+
+                        //fix weapon
+                        if let Some(wephandle) = script.weapon {
+                            if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                                weapon.set_visibility(false);
+                                //return weapon to starting rotation 
+                                weapon.local_transform_mut()
+                                    .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+                            }
+                        }
                     }
 
 
@@ -450,6 +466,26 @@ impl Class {
             }
         }
     }
+
+
+    pub fn cont_hit(&self, script: &mut Player, frame: i32, context: &mut ScriptContext) {
+        //if we're still stunlocked
+        if frame < Self::HITDUR {
+            let v = context.scene.graph[context.handle.clone()].global_visibility();
+            context.scene.graph[context.handle.clone()].set_visibility(!v);
+            
+            script.state = PlayerState::Hit(frame+1);
+        } else {
+            context.scene.graph[context.handle.clone()].set_visibility(true);
+            script.state = PlayerState::Idle;
+
+            
+        }
+
+
+    }
+
+    pub fn die(&self) {}
 
 }
 
