@@ -16,17 +16,11 @@ use fyrox::{
     gui::{
         UiNode,
         UserInterface,
-        message::UiMessage,
         button::{
-            ButtonBuilder,
             ButtonMessage,
         },
         window::{WindowBuilder, WindowTitle}, 
-        widget::WidgetBuilder,
-        text::TextBuilder,
         stack_panel::StackPanelBuilder,
-        HorizontalAlignment,
-        VerticalAlignment,
     },
     gui::brush::Brush,
     gui::canvas::CanvasBuilder,
@@ -34,12 +28,10 @@ use fyrox::{
     gui::{message::{UiMessage, MessageDirection}, core::color::Color},
     gui::{BuildContext, Orientation, HorizontalAlignment, VerticalAlignment},
     gui::widget::WidgetBuilder,
-    gui::UserInterface,
     gui::text::{TextBuilder, TextMessage, Text},
     gui::border::BorderBuilder,
     gui::wrap_panel::WrapPanelBuilder,
     gui::progress_bar::{ProgressBarBuilder, ProgressBarMessage},
-    gui::UiNode,
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
     event::{ElementState, Event, WindowEvent},
@@ -274,6 +266,18 @@ pub struct Game {
     p4barb: Handle<UiNode>,
     p4rog: Handle<UiNode>,
     p4wiz: Handle<UiNode>,
+
+    id_list: Vec::<GamepadId>,
+    player_text1: Handle<UiNode>,
+    player_text2: Handle<UiNode>,
+    player_text3: Handle<UiNode>,
+    player_text4: Handle<UiNode>,
+    text1: Handle<UiNode>,
+    text2: Handle<UiNode>,
+    text3: Handle<UiNode>,
+    text4: Handle<UiNode>,
+    //ctx: UserInterface,
+    //HEALTH_TXT: String,
 }
 
 fn start_button(ui: &mut UserInterface) -> Handle<UiNode> {
@@ -631,20 +635,6 @@ fn player4(ui: &mut UserInterface) -> Handle<UiNode> {
     .build(&mut ui.build_ctx())
 }
 
-
-    id_list: Vec::<GamepadId>,
-    player_text1: Handle<UiNode>,
-    player_text2: Handle<UiNode>,
-    player_text3: Handle<UiNode>,
-    player_text4: Handle<UiNode>,
-    text1: Handle<UiNode>,
-    text2: Handle<UiNode>,
-    text3: Handle<UiNode>,
-    text4: Handle<UiNode>,
-    count: i8,
-    //ctx: UserInterface,
-    //HEALTH_TXT: String,
-}
 use gilrs::GamepadId;
 impl Game {
     pub fn new(scene_path: Option<&str>, context: PluginContext) -> Self {
@@ -697,7 +687,6 @@ impl Game {
             text2: create_text_with_background_2(context.user_interface, "", 375.0, 100.0),
             text3: create_text_with_background_3(context.user_interface, "", 575.0, 100.0),
             text4: create_text_with_background_4(context.user_interface, "", 775.0, 100.0),
-            count: 1,
             //HEALTH_TXT: "health:".to_string(),
         }
     }
@@ -732,35 +721,7 @@ impl Plugin for Game {
                     // // have to 'downcast' using the .cast_mut thingy to get the actual player object.
                     // // its complicated i know, but it works!
 
-                    // //create a new player
-                    // let player_handle = create_cube_rigid_body(&mut context.scenes[self.scene].graph);
-                    // //create a sprite for the player
-                    // let sprite_handle = create_rect(&mut context.scenes[self.scene].graph, context.resource_manager, &Vec::<u8>::from([0, 255, 255]));
-                    // //make the sprite a child of the player
-                    // context.scenes[self.scene].graph.link_nodes(sprite_handle, player_handle);
-                    // //add the player to the game's struct
-                    // self.players.insert(id, player_handle);
-                    // // add player ID to vector of IDs
-                    //add the player and default class to struct
-                    self.playerclasses.insert(id, Class::Rogue);
-
                     self.idList.push(id);
-
-
-
-                    // self.id_list.push(id);
-
-                    // //adds script player to object
-                    // set_script(&mut context.scenes[self.scene].graph[player_handle.clone()], 
-                    //     Player{
-                    //         class: self.playerclasses[&id].clone(),
-                    //         state: PlayerState::Idle,
-                    //         weapon: None,
-                    //             cooldown: 0,
-                    //             facing: Vector3::new(0.0,1.0,0.0),
-                    //         health: 10,
-                    //     })
-                    create_player(self.count, self.count, id, context, self);
 
                 },
                 //send the controller event to the player
@@ -953,11 +914,11 @@ impl Plugin for Game {
             ctx.build_ctx()[p].set_visibility(true);
         }
 
-        loop{
-            if let None = ctx.poll_message() {
-                break;
-            }
-        }
+        // loop{
+        //     if let None = ctx.poll_message() {
+        //         break;
+        //     }
+        // }
         ctx.poll_message();
     }
 
@@ -1090,6 +1051,12 @@ impl Plugin for Game {
                 ctx.build_ctx()[self.p4wiz.clone()].set_visibility(false);
 
                 ctx.build_ctx()[self.start_button_handle.clone()].set_visibility(false);
+
+                let mut i = 1;
+                for (id, class) in self.playerclasses.clone() {
+                    create_player(i, class, id, context, self);
+                    i += 1;
+                }
             }
         }
     }
@@ -1281,10 +1248,8 @@ impl ScriptTrait for Projectile {
     }
 }
 
-fn create_player(player_num: i8, player_class: i8, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
+fn create_player(player_num: i8, player_class: Class, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
     let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
-
-    let shapes = Vec::from(["data/White_square.png", "data/White_circle.png", "data/White_triangle.png", "data/White_star.png"]);
 
     if player_num == 1 {
         player_data.0 = Vec::from([66, 245, 158]);
@@ -1307,10 +1272,19 @@ fn create_player(player_num: i8, player_class: i8, id: GamepadId, context: &mut 
         return;
     }
 
+    //path to correct sprite, pre-coloring based on team
+    let path = match player_class.clone() {
+        Class::Barbarian => {"data/White_square.png".to_string()},
+        Class::Fighter => {"data/White_circle.png".to_string()},
+        Class::Rogue => {"data/White_triangle.png".to_string()},
+        Class::Wizard => {"data/White_star.png".to_string()},
+
+    };
+
     //create a new player
     let player_handle = create_cube_rigid_body(&mut context.scenes[game.scene].graph);
     //create a sprite for the player
-    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0, shapes[(player_class - 1) as usize].to_string());
+    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0, path);
     //make the sprite a child of the player
     context.scenes[game.scene].graph.link_nodes(sprite_handle, player_handle);
     //add the player to the game's struct
@@ -1318,34 +1292,34 @@ fn create_player(player_num: i8, player_class: i8, id: GamepadId, context: &mut 
     // add player ID to vector of IDs
     game.id_list.push(id);
 
-    //adds script player to object
-    if player_class == 1 {
-        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-        Player{
-            class: Class::Barbarian,
-            state: PlayerState::Idle,
-            weapon: None,
-                cooldown: 0,
-                facing: Vector3::new(0.0,1.0,0.0),
-            health: 10,
-            charges: 0,
-        })
-    }
-    else if player_class == 2 {
-        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-        Player{
-            class: Class::Fighter,
-            state: PlayerState::Idle,
-            weapon: None,
-                cooldown: 0,
-                facing: Vector3::new(0.0,1.0,0.0),
-            health: 10,
-            charges: 0,
-        })
-    }
-    else if player_class == 3 {
-        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-        Player{
+    match player_class {
+        Class::Barbarian => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
+                class: Class::Barbarian,
+                state: PlayerState::Idle,
+                weapon: None,
+                    cooldown: 0,
+                    facing: Vector3::new(0.0,1.0,0.0),
+                health: 10,
+                charges: 0,
+            })
+        },
+        Class::Fighter => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
+                class: Class::Fighter,
+                state: PlayerState::Idle,
+                weapon: None,
+                    cooldown: 0,
+                    facing: Vector3::new(0.0,1.0,0.0),
+                health: 10,
+                charges: 0,
+            })
+        },
+        Class::Rogue => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
             class: Class::Rogue,
             state: PlayerState::Idle,
             weapon: None,
@@ -1353,11 +1327,11 @@ fn create_player(player_num: i8, player_class: i8, id: GamepadId, context: &mut 
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 10,
             charges: 0,
-        })
-    }
-    else if player_class == 4 {
-        set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-        Player{
+            })
+        },
+        Class::Wizard => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
             class: Class::Wizard,
             state: PlayerState::Idle,
             weapon: None,
@@ -1366,15 +1340,60 @@ fn create_player(player_num: i8, player_class: i8, id: GamepadId, context: &mut 
             health: 10,
             charges: 0,
         })
+        }
     }
-    else {
-        println!("That is not a valid class");
-        return();
-    }
+
+    // //adds script player to object
+    // if player_class == 1 {
+    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+    //     Player{
+    //         class: Class::Barbarian,
+    //         state: PlayerState::Idle,
+    //         weapon: None,
+    //             cooldown: 0,
+    //             facing: Vector3::new(0.0,1.0,0.0),
+    //         health: 10,
+    //         charges: 0,
+    //     })
+    // }
+    // else if player_class == 2 {
+    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+    //     Player{
+    //         class: Class::Fighter,
+    //         state: PlayerState::Idle,
+    //         weapon: None,
+    //             cooldown: 0,
+    //             facing: Vector3::new(0.0,1.0,0.0),
+    //         health: 10,
+    //         charges: 0,
+    //     })
+    // }
+    // else if player_class == 3 {
+    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+    //     Player{
+    //         class: Class::Rogue,
+    //         state: PlayerState::Idle,
+    //         weapon: None,
+    //             cooldown: 0,
+    //             facing: Vector3::new(0.0,1.0,0.0),
+    //         health: 10,
+    //         charges: 0,
+    //     })
+    // }
+    // else if player_class == 4 {
+    //     set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+    //     Player{
+    //         class: Class::Wizard,
+    //         state: PlayerState::Idle,
+    //         weapon: None,
+    //             cooldown: 0,
+    //             facing: Vector3::new(0.0,1.0,0.0),
+    //         health: 10,
+    //         charges: 0,
+    //     })
+    // }
 
     context.scenes[game.scene].graph[player_handle.clone()]
         .local_transform_mut()
         .set_position(Vector3::new(player_data.1[0], player_data.1[1], player_data.1[2]));
-
-    game.count += 1;
 }
