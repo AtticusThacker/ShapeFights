@@ -4,7 +4,7 @@ use gilrs::ev::EventType;
 
 pub enum Message {
     Hit {
-        damage: i32,
+        damage: u32,
         knockback: Vector3<f32>,
         body: Handle<Node>,
     },
