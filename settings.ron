@@ -322,48 +322,6 @@
             ),
             node_infos: {
                 (
-                    index: 52,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 51,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 4,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 50,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 42,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 49,
                     generation: 1,
                 ): (
@@ -376,13 +334,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 5,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
+                    index: 4,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -394,7 +346,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 3,
+                    index: 51,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -406,19 +358,49 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 44,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 52,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 48,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 43,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -430,12 +412,46 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 48,
+                    index: 42,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 44,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 50,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
             },
+        ),
+        "./data/scene.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+            ),
+            node_infos: {},
+        ),
+        "./data/scene1.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+            ),
+            node_infos: {},
         ),
         "\\\\?\\C:\\Users\\rober\\CS241Final\\fa23-final-spoongang\\game.rgs": (
             camera_settings: (
@@ -445,13 +461,13 @@
             ),
             node_infos: {
                 (
-                    index: 41,
+                    index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
+                    index: 41,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -462,12 +478,13 @@
     recent: (
         scenes: [
             "data/scene.rgs",
+            "data/scene1.rgs",
             "game.rgs",
         ],
     ),
     windows: (
         window_position: (0.0, 0.0),
-        window_size: (1920.0, 974.0),
+        window_size: (1440.0, 797.0),
         layout: None,
     ),
 )
