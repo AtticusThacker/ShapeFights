@@ -1084,6 +1084,7 @@ pub enum PlayerState {
     Idle,
     Charging,
     Dead,
+    Riposting,
     //the field holds the number of frames the player is into the action
     Attacking(i32),
     Hit(i32),
@@ -1129,8 +1130,10 @@ impl ScriptTrait for Player {
             PlayerState::Dead => return(),
             PlayerState::Attacking(frame) => {self.class.clone().cont_attack(self, frame, context)},
             PlayerState::Hit(frame) => {self.class.clone().cont_hit(self, frame, context)},
+
             PlayerState::Charging => {self.class.clone().charging(self, context)},
             PlayerState::Parry(frame) => {self.class.clone().cont_parry(self, frame, context)},
+            PlayerState::Riposting => {self.class.clone().riposting(self, context)}
             _ => (),
         }
 
