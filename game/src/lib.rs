@@ -720,7 +720,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
             weapon: None,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
-            health: 10,
+            health: 20,
         })
     }
     else if player_class == 2 {
@@ -731,7 +731,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
             weapon: None,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
-            health: 10,
+            health: 15,
         })
     }
     else if player_class == 3 {
@@ -753,7 +753,7 @@ fn create_player(player_num: i8, player_class: u8, id: GamepadId, context: &mut 
             weapon: None,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
-            health: 10,
+            health: 5,
         })
     }
     else {
