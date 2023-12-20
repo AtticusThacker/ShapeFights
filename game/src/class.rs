@@ -305,7 +305,7 @@ impl Class {
 
     pub fn cont_attack(&self, script: &mut Player, frame: i32, ctx: &mut ScriptContext) {
         let barbdam = match script.state {
-            PlayerState::Charging => 2 * Self::BARBDAM,
+            PlayerState::Charging => 2 + Self::BARBDAM,
             _ => Self::BARBDAM,
         };
         
@@ -381,6 +381,7 @@ impl Class {
     pub fn projectiles(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
         let range_atk = match self{
             Class::Barbarian => {self.start_charge(script, ctx); return()}
+            Class::Rogue => {self.riposte(script, ctx); return()}
             Class::Rogue => return(),
             Class::Fighter if script.charges > 0 => {script.charges -= 1; true}
             Class::Fighter => return(),
@@ -451,6 +452,76 @@ impl Class {
                 rigid_body.set_lin_vel(Vector2::new(0.0, 0.0));
             }
             script.state = PlayerState::Idle;
+        }
+    }
+
+    pub fn riposte(&self, script: &mut Player, ctx: &mut ScriptMessageContext) {
+        let atk = match script.state {
+            PlayerState::Idle => true,
+            _ => false
+        };
+
+        if let Some(weapon) = ctx.scene.graph[script.weapon.unwrap().clone()].cast_mut::<RigidBody>(){
+            weapon.local_transform_mut().set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), 0.0));
+            weapon.set_visibility(true);
+        }
+
+        script.state = PlayerState::Riposting;
+        script.cooldown = 0;
+    }
+
+    pub fn riposting(&self, script: &mut Player, ctx: &mut ScriptContext) {
+        
+        if script.cooldown < 10 {
+            if let Some(wephandle) = script.weapon {
+                //check for a hit:
+                //find the collider of the weapon
+                if let Some((_,colnode)) = ctx.scene.graph.find(wephandle, &mut |c| c.is_collider2d()) {
+                    let collider = colnode.as_collider2d();
+                    // iterate over collisions
+                    for i in collider.intersects(&ctx.scene.graph.physics2d) {
+                        //for each active contact
+                        if i.has_any_active_contact {
+                            //find its parent
+                            if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
+                                let mut knockvec = script.facing.clone();
+                                knockvec.set_magnitude(Self::ROGKNOCK);
+                                ctx.message_sender.send_to_target(phandle, Message::Hit{
+                                    damage: 3 * Self::ROGDAM, 
+                                    knockback: knockvec,
+                                    body: phandle.clone()
+                                });
+                                // if let Some(s) = p.as_rigid_body2d().script() {
+                                //     if let Some(s) = s.cast::<Player>() {
+                                //         println!("hit a player!");
+                                //         ctx.message_sender.send_to_target(phandle, Message::Hit{damage: dam, knockback: knock});
+                                //     }
+                                // }
+                            }
+                        }
+                    }
+                }
+
+
+                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    //rotate the weapon equal to the weapon speed constant
+                    //let curoffset = weapon.local_transform().scaling_offset().clone();
+                    weapon.local_transform_mut().offset(Vector3::new(0.0, 0.1, 0.0));
+                }
+            }
+        }
+        else {
+            script.state = Idle;
+            //make weapon invisible
+            if let Some(wephandle) = script.weapon {
+                if let Some(weapon) = ctx.scene.graph[wephandle.clone()].cast_mut::<RigidBody>(){
+                    weapon.set_visibility(false);
+                    //return weapon to starting rotation 
+                    weapon.local_transform_mut()
+                        .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -(std::f32::consts::FRAC_PI_2)));
+                    weapon.local_transform_mut().offset(Vector3::new(0.0, -1.0, 0.0));
+                }
+            }
         }
     }
 
