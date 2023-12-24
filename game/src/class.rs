@@ -330,11 +330,27 @@ impl Class {
                     let collider = colnode.as_collider2d();
                     // iterate over collisions
                     for i in collider.intersects(&ctx.scene.graph.physics2d) {
+                        println!("checked a collision pair");
                         //for each active contact
-                        if i.has_any_active_contact {
+                        //if i.has_any_active_contact {
+                          //  println!("registered active contact");
                             //find its parent
                             if let Some((target,t)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.try_get_script::<Player>().is_some()) {
-                                if let Some((phandle, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
+                                println!("found player");
+                                if let Some((phandle1, p)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.is_rigid_body2d()) {
+                                    let mut phandle;
+                                    //make sure collider1 isn't your own weapon lol
+                                    if phandle1 == script.weapon.unwrap() {
+                                        if let Some((phandle2, _)) = ctx.scene.graph.find_up(i.collider2, &mut |c| c.is_rigid_body2d()) {
+                                            phandle = phandle2;
+                                        } else {
+                                            phandle = phandle1;
+                                        }
+                                    } else {
+                                        phandle = phandle1;
+                                    }
+
+                                    println!("registered hit!");
                                 let mut knockvec = script.facing.clone();
                                 knockvec.set_magnitude(3.0);
                                 ctx.message_sender.send_to_target(target, Message::Hit{
@@ -364,7 +380,7 @@ impl Class {
                                 //     }
                                 }// }
                             }
-                        }
+                        //}
                     }
                 }
 
@@ -553,7 +569,9 @@ impl Class {
             match script.state {
                 PlayerState::Hit(_) => {},
                 PlayerState::Parry(_) => {
+                    println!("took hit while parrying");
                     if bod == script.weapon.clone().unwrap() {
+                        println!("bod == script.weapon");
                         ctx.message_sender.send_to_target(sender, Message::Parried{});
                         script.state = PlayerState::Idle;
                         //put weapon away
