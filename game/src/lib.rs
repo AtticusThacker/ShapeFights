@@ -1,76 +1,65 @@
 //! Game project
-#![allow(unused)]
-use std::collections::HashMap;
-use std::vec::Vec;
-use fyrox::{
+#![allow(nonstandard_style)]
+use std::{
+    collections::HashMap,
+    vec::Vec,
+    path::Path,
+};
 
-    core::{
-        pool::Handle,
-        algebra::{Vector2, Vector3},
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
-        visitor::prelude::*, TypeUuidProvider,
-        futures::executor::block_on,
-        //color::Color,
-    },
-    gui::{
-        UiNode,
-        UserInterface,
-        button::{
-            ButtonMessage,
-        },
-        window::{WindowBuilder, WindowTitle}, 
-        stack_panel::StackPanelBuilder,
-    },
-    gui::brush::Brush,
-    gui::canvas::CanvasBuilder,
-    gui::button::ButtonBuilder,
-    gui::{message::{UiMessage, MessageDirection}, core::color::Color},
-    gui::{BuildContext, Orientation, HorizontalAlignment, VerticalAlignment},
-    gui::widget::WidgetBuilder,
-    gui::text::{TextBuilder, TextMessage, Text},
-    gui::border::BorderBuilder,
-    gui::wrap_panel::WrapPanelBuilder,
-    gui::progress_bar::{ProgressBarBuilder, ProgressBarMessage},
+use fyrox::{
+    script::{Script, ScriptContext, ScriptTrait, ScriptMessageSender, ScriptMessagePayload, ScriptMessageContext},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     asset::manager::ResourceManager,
-    event::{ElementState, Event, WindowEvent},
+    event::Event,
     //keyboard::KeyCode,
     impl_component_provider,
-    resource::texture::{Texture, TextureResource},
+    resource::texture::Texture,
+
+    core::{
+        reflect::prelude::*,
+        pool::Handle,
+        visitor::prelude::*, TypeUuidProvider,
+        algebra::{Vector2, Vector3},
+        uuid::{uuid, Uuid},
+        //color::Color,
+    },
+
+    gui::{
+        UiNode, UserInterface, HorizontalAlignment, VerticalAlignment,
+        brush::Brush,
+        button::{ButtonBuilder, ButtonMessage},
+        core::color::Color,
+        widget::WidgetBuilder,
+        border::BorderBuilder, 
+        message::{UiMessage, MessageDirection}, 
+        text::{TextBuilder, TextMessage, Text},
+    },
+
     scene::{
-        dim2::{
-            rectangle::{Rectangle, RectangleBuilder}, 
-            rigidbody::{RigidBody, RigidBodyBuilder}, 
-            collider::{ColliderShape, ColliderBuilder},
-            joint::{JointBuilder, JointParams, BallJoint},
-        },
-        node::{Node},
-        Scene, SceneLoader, SceneContainer,
-        graph::{Graph},
-        base::{BaseBuilder},
+        Scene,
+        node::Node,
+        graph::Graph,
+        base::BaseBuilder,
         transform::TransformBuilder,
         rigidbody::RigidBodyType,
+        dim2::{
+            rectangle::RectangleBuilder, 
+            rigidbody::{RigidBody, RigidBodyBuilder}, 
+            collider::{ColliderShape, ColliderBuilder},
+        },
     },
-    script::{ScriptContext, ScriptTrait, ScriptMessageSender, 
-        ScriptMessagePayload, ScriptMessageContext},
-
-    engine::ScriptedScene,
 };
 
-use std::path::Path;
 use gilrs as g;
 use gilrs::{
-    Gilrs,
-    Event as gEvent,
     EventType::*, 
-    ev::*,
-    Button::{RightTrigger,LeftTrigger},
+    Gilrs, Event as gEvent, GamepadId,
+    Button::{RightTrigger, LeftTrigger, RightThumb},
 };
-use fyrox::script::Script;
 
 pub mod class;
 pub mod messages;
+pub mod create;
 
 use messages::{
     Message,
@@ -78,148 +67,24 @@ use messages::{
 };
 use class::Class;
 
-fn create_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
-    TextBuilder::new(WidgetBuilder::new())
-        .with_text(text)
-        .build(&mut ui.build_ctx())
-}
-
-fn create_centered_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode> {
-    TextBuilder::new(WidgetBuilder::new())
-        .with_horizontal_text_alignment(HorizontalAlignment::Center)
-        .with_vertical_text_alignment(VerticalAlignment::Center)
-    .with_text(text)
-    .build(&mut ui.build_ctx())
-}
+use create::{
+    create_text_with_background,
+    create_cube_rigid_body,
+    create_rect,
+    set_script,
+};
 
 
 
-// the functions fyrox gives us to create text were not great so i made my own
-// each of the next 4 functions create text with a background (like highlighted)
-// there's 4, one for each possible player, each with a different color
-// also they take in floating point numbers as parameters for position
-// default visibility is set to false!!
-
-// player 1
-fn create_text_with_background_1(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
-    let text_widget =
-        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
-            .with_text(text)
-            .build(&mut ui.build_ctx());
-    BorderBuilder::new(
-        WidgetBuilder::new().with_desired_position(Vector2::new(x,y))
-            .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(66, 245, 158))) // green
-            .with_visibility(false),
-    )
-    .build(&mut ui.build_ctx());
-    return text_widget;
-}
-
-// player 2
-fn create_text_with_background_2(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
-    let text_widget =
-        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
-            .with_text(text)
-            .build(&mut ui.build_ctx());
-    BorderBuilder::new(
-        WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
-            .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(66, 167, 245))) // blue
-            .with_visibility(false),
-    )
-    .build(&mut ui.build_ctx());
-    return text_widget;
-}
-
-// player 3
-fn create_text_with_background_3(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
-    let text_widget =
-        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
-            .with_text(text)
-            .build(&mut ui.build_ctx());
-    BorderBuilder::new(
-        WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
-            .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(194, 136, 252))) // purple
-            .with_visibility(false),
-    )
-    .build(&mut ui.build_ctx());
-    return text_widget;
-}
-
-// player 4
-fn create_text_with_background_4(ui: &mut UserInterface, text: &str, x: f32, y: f32) -> Handle<UiNode> {
-    let text_widget =
-        TextBuilder::new(WidgetBuilder::new().with_foreground(Brush::Solid(Color::BLACK)))
-            .with_text(text)
-            .build(&mut ui.build_ctx());
-    BorderBuilder::new(
-        WidgetBuilder::new().with_desired_position(Vector2::new(x, y))
-            .with_child(text_widget) // <-- Text is now a child of the border
-            .with_background(Brush::Solid(Color::opaque(250, 135, 215))) // pink
-            .with_visibility(false),
-    )
-    .build(&mut ui.build_ctx());
-    return text_widget;
-}
 
 
-fn create_cube_rigid_body(graph: &mut Graph) -> Handle<Node> {
-    RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
-            // Rigid body must have at least one collider
-            ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(ColliderShape::cuboid(0.25, 0.2))
-                .build(graph),
-        ]))
-    .with_mass(2.0)
-    .with_gravity_scale(0.0)
-    .with_can_sleep(false)
-    .with_rotation_locked(true)
-    .with_lin_vel(Vector2::new(0.0, 0.0))
-    .build(graph)
-}
 
-fn create_kinematic_rigid_body(graph: &mut Graph) -> Handle<Node> {
-    RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
-            // Rigid body must have at least one collider
-            ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(ColliderShape::cuboid(0.5, 0.5))
-                .with_sensor(true)
-                .build(graph),
-        ]))
-    .with_body_type(RigidBodyType::KinematicVelocityBased)
-    .build(graph)
-}
 
-fn create_joint(graph: &mut Graph, body1: Handle<Node>, body2: Handle<Node>) -> Handle<Node> {
-    JointBuilder::new(BaseBuilder::new())
-        .with_body1(body1)
-        .with_body2(body2)
-        .with_params(JointParams::BallJoint(BallJoint {
-            limits_enabled: true,
-            limits_angles: (0.0..1.0),
-        }))
-        .build(graph)
-}
 
-fn create_rect(graph: &mut Graph, resource_manager: &ResourceManager, color: &Vec<u8>, shape: String) -> Handle<Node> {
-    RectangleBuilder::new(
-        BaseBuilder::new().with_local_transform(
-            TransformBuilder::new()
-                // Size of the rectangle is defined only by scale.
-                .with_local_scale(Vector3::new(0.4, 0.4, 0.4))
-                .build(),
-        ),
-    )
-    .with_texture(resource_manager.request::<Texture, _>(shape))
-    .with_color(Color{r: color[0], g: color[1], b: color[2], a: 255})
-    .build(graph)
-}
 
-fn set_script<T: ScriptTrait>(node: &mut Node, script: T) {
-    node.set_script(Some(Script::new(script)))
-}
+
+
+
 
 pub struct GameConstructor;
 
@@ -268,14 +133,17 @@ pub struct Game {
     p4wiz: Handle<UiNode>,
 
     id_list: Vec::<GamepadId>,
-    player_text1: Handle<UiNode>,
-    player_text2: Handle<UiNode>,
-    player_text3: Handle<UiNode>,
-    player_text4: Handle<UiNode>,
-    text1: Handle<UiNode>,
-    text2: Handle<UiNode>,
-    text3: Handle<UiNode>,
-    text4: Handle<UiNode>,
+
+    // first 4 entries are the four "health:" widgets, then their respective strings of x for health bars
+    hud: Vec<Handle<UiNode>>,
+    // player_text1: Handle<UiNode>,
+    // hud[1]: Handle<UiNode>,
+    // hud[2]: Handle<UiNode>,
+    // hud[3]: Handle<UiNode>,
+    // hud[4]: Handle<UiNode>,
+    // hud[5]: Handle<UiNode>,
+    // hud[6]: Handle<UiNode>,
+    // hud[7]: Handle<UiNode>,
     //ctx: UserInterface,
     //HEALTH_TXT: String,
 }
@@ -635,12 +503,29 @@ fn player4(ui: &mut UserInterface) -> Handle<UiNode> {
     .build(&mut ui.build_ctx())
 }
 
-use gilrs::GamepadId;
 impl Game {
     pub fn new(scene_path: Option<&str>, context: PluginContext) -> Self {
         context
             .async_scene_loader
             .request(scene_path.unwrap_or("data/scene.rgs"));
+
+        //create Heads Up Display
+        let color1 = Color::opaque(66, 245, 158); 
+        let color2 = Color::opaque(66, 167, 245);
+        let color3 = Color::opaque(194, 136, 252);
+        let color4 = Color::opaque(250, 135, 215);
+
+
+        let mut hud = Vec::<Handle<UiNode>>::new();
+        hud.push(create_text_with_background(context.user_interface, "health:", 100.0, 100.0, color1.clone()));
+        hud.push(create_text_with_background(context.user_interface, "health:", 300.0, 100.0, color2.clone()));
+        hud.push(create_text_with_background(context.user_interface, "health:", 500.0, 100.0, color3.clone()));
+        hud.push(create_text_with_background(context.user_interface, "health:", 700.0, 100.0, color4.clone()));
+
+        hud.push(create_text_with_background(context.user_interface, "", 175.0, 100.0, color1.clone()));
+        hud.push(create_text_with_background(context.user_interface, "", 375.0, 100.0, color2.clone()));
+        hud.push(create_text_with_background(context.user_interface, "", 575.0, 100.0, color3.clone()));
+        hud.push(create_text_with_background(context.user_interface, "", 775.0, 100.0, color4.clone()));
 
         Self {
             //ctx: context.user_interface,
@@ -679,14 +564,15 @@ impl Game {
             
             
             id_list: Vec::<GamepadId>::new(),
-            player_text1: create_text_with_background_1(context.user_interface, "health:", 100.0, 100.0),
-            player_text2: create_text_with_background_2(context.user_interface, "health:", 300.0, 100.0),
-            player_text3: create_text_with_background_3(context.user_interface, "health:", 500.0, 100.0),
-            player_text4: create_text_with_background_4(context.user_interface, "health:", 700.0, 100.0),
-            text1: create_text_with_background_1(context.user_interface, "", 175.0, 100.0),
-            text2: create_text_with_background_2(context.user_interface, "", 375.0, 100.0),
-            text3: create_text_with_background_3(context.user_interface, "", 575.0, 100.0),
-            text4: create_text_with_background_4(context.user_interface, "", 775.0, 100.0),
+            hud,
+            // player_text1: create_text_with_background_1(context.user_interface, "health:", 100.0, 100.0),
+            // hud[1]: create_text_with_background_2(context.user_interface, "health:", 300.0, 100.0),
+            // hud[2]: create_text_with_background_3(context.user_interface, "health:", 500.0, 100.0),
+            // hud[3]: create_text_with_background_4(context.user_interface, "health:", 700.0, 100.0),
+            // hud[4]: create_text_with_background_1(context.user_interface, "", 175.0, 100.0),
+            // hud[5]: create_text_with_background_2(context.user_interface, "", 375.0, 100.0),
+            // hud[6]: create_text_with_background_3(context.user_interface, "", 575.0, 100.0),
+            // hud[7]: create_text_with_background_4(context.user_interface, "", 775.0, 100.0),
             //HEALTH_TXT: "health:".to_string(),
         }
     }
@@ -710,7 +596,7 @@ impl Plugin for Game {
         }
 
         //read in all new gilrs events
-        while let Some(gEvent { id, event, time }) = self.gils.next_event() {
+        while let Some(gEvent { id, event, .. }) = self.gils.next_event() {
             
             //matching on the event type 
             match event {
@@ -730,17 +616,14 @@ impl Plugin for Game {
                         message_sender.send_to_target(player_handle.clone(), Message::Controller{event});
                     } else {println!("didn't get messager");}
                 } else {println!("didn't get player handle");}
-                
-                _ => (), //for now
 
             }  
         }  
 
         // changes the number of xs in the health status bar
-        // this has not been tested yet so idk if it works
         let ctx = &mut context.user_interface;
         // let health_txt = "health:";
-        let mut text = "".to_string();
+        //let text = "".to_string();
         
         // for player 1
         if self.players.len() > 0 {
@@ -748,9 +631,9 @@ impl Plugin for Game {
             let mut h: u32 = 10;
 
             // makes "health:" visible
-            ctx.build_ctx()[self.player_text1.clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.player_text1;
-            if let Some(txt) = ctx.build_ctx()[self.player_text1.clone()].cast::<Text>() {
+            ctx.build_ctx()[self.hud[0].clone()].set_visibility(true);
+            let mut q: Handle<UiNode> = self.hud[0];
+            if let Some(txt) = ctx.build_ctx()[self.hud[0].clone()].cast::<Text>() {
                 q = txt.parent.clone();
             }
             ctx.build_ctx()[q].set_visibility(true);
@@ -759,7 +642,7 @@ impl Plugin for Game {
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[0]) {
                 // gets the node
-                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
                 // gets the actual player object
                 let node2 = node1.script_mut().expect("error").cast_mut::<Player>().expect("error");
                 // sets health variable to player's health
@@ -776,12 +659,12 @@ impl Plugin for Game {
             }
 
             ctx.send_message(TextMessage::text(
-                self.text1,
+                self.hud[4],
                 MessageDirection::ToWidget,
                 text.to_owned(),
             ));
-            let mut p: Handle<UiNode> = self.text1;
-            if let Some(wid) = ctx.build_ctx()[self.text1.clone()].cast::<Text>() {
+            let mut p: Handle<UiNode> = self.hud[4];
+            if let Some(wid) = ctx.build_ctx()[self.hud[4].clone()].cast::<Text>() {
                 p = wid.parent.clone();
             }
             ctx.build_ctx()[p].set_visibility(true);
@@ -792,9 +675,9 @@ impl Plugin for Game {
             // creates health variable here
             let mut h: u32 = 10;
             // makes "health:" visible
-            ctx.build_ctx()[self.player_text2.clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.player_text2;
-            if let Some(txt) = ctx.build_ctx()[self.player_text2.clone()].cast::<Text>() {
+            ctx.build_ctx()[self.hud[1].clone()].set_visibility(true);
+            let mut q: Handle<UiNode> = self.hud[1];
+            if let Some(txt) = ctx.build_ctx()[self.hud[1].clone()].cast::<Text>() {
                 q = txt.parent.clone();
             }
             ctx.build_ctx()[q].set_visibility(true);
@@ -802,7 +685,7 @@ impl Plugin for Game {
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[1]) {
                 // gets the node
-                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
                 // gets the actual player object
                 let node2 = node1.script().unwrap().cast::<Player>().unwrap();
                 // sets health variable to player's health
@@ -818,12 +701,12 @@ impl Plugin for Game {
                 i = i+1;
             }
             ctx.send_message(TextMessage::text(
-                self.text2,
+                self.hud[5],
                 MessageDirection::ToWidget,
                 text.to_owned(),
             ));
-            let mut p: Handle<UiNode> = self.text2;
-            if let Some(wid) = ctx.build_ctx()[self.text2.clone()].cast::<Text>() {
+            let mut p: Handle<UiNode> = self.hud[5];
+            if let Some(wid) = ctx.build_ctx()[self.hud[5].clone()].cast::<Text>() {
                 p = wid.parent.clone();
             }
             ctx.build_ctx()[p].set_visibility(true);
@@ -834,9 +717,9 @@ impl Plugin for Game {
             // creates health variable here
             let mut h: u32 = 10;
             // makes "health:" visible
-            ctx.build_ctx()[self.player_text3.clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.player_text3;
-            if let Some(txt) = ctx.build_ctx()[self.player_text3.clone()].cast::<Text>() {
+            ctx.build_ctx()[self.hud[2].clone()].set_visibility(true);
+            let mut q: Handle<UiNode> = self.hud[2];
+            if let Some(txt) = ctx.build_ctx()[self.hud[2].clone()].cast::<Text>() {
                 q = txt.parent.clone();
             }
             ctx.build_ctx()[q].set_visibility(true);
@@ -844,7 +727,7 @@ impl Plugin for Game {
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[2]) {
                 // gets the node
-                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
                 // gets the actual player object
                 let node2 = node1.script().unwrap().cast::<Player>().unwrap();
                 // sets health variable to player's health
@@ -861,12 +744,12 @@ impl Plugin for Game {
             }
 
             ctx.send_message(TextMessage::text(
-                self.text3,
+                self.hud[6],
                 MessageDirection::ToWidget,
                 text.to_owned(),
             ));
-            let mut p: Handle<UiNode> = self.text3;
-            if let Some(wid) = ctx.build_ctx()[self.text3.clone()].cast::<Text>() {
+            let mut p: Handle<UiNode> = self.hud[6];
+            if let Some(wid) = ctx.build_ctx()[self.hud[6].clone()].cast::<Text>() {
                 p = wid.parent.clone();
             }
             ctx.build_ctx()[p].set_visibility(true);
@@ -877,16 +760,16 @@ impl Plugin for Game {
             // creates health variable here
             let mut h = 10;
             // makes "health:" visible
-            ctx.build_ctx()[self.player_text4.clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.player_text4;
-            if let Some(txt) = ctx.build_ctx()[self.player_text4.clone()].cast::<Text>() {
+            ctx.build_ctx()[self.hud[3].clone()].set_visibility(true);
+            let mut q: Handle<UiNode> = self.hud[3];
+            if let Some(txt) = ctx.build_ctx()[self.hud[3].clone()].cast::<Text>() {
                 q = txt.parent.clone();
             }
             ctx.build_ctx()[q].set_visibility(true);
             // gets the player handle from hash map for player 1
             if let Some(player_script) = self.players.get(&self.id_list[3]) {
                 // gets the node
-                let mut node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
                 // gets the actual player object
                 let node2 = node1.script().unwrap().cast::<Player>().unwrap();
                 // sets health variable to player's health
@@ -903,12 +786,12 @@ impl Plugin for Game {
             }
 
             ctx.send_message(TextMessage::text(
-                self.text4,
+                self.hud[7],
                 MessageDirection::ToWidget,
                 text.to_owned(),
             ));
-            let mut p: Handle<UiNode> = self.text4;
-            if let Some(wid) = ctx.build_ctx()[self.text4.clone()].cast::<Text>() {
+            let mut p: Handle<UiNode> = self.hud[7];
+            if let Some(wid) = ctx.build_ctx()[self.hud[7].clone()].cast::<Text>() {
                 p = wid.parent.clone();
             }
             ctx.build_ctx()[p].set_visibility(true);
@@ -1061,7 +944,7 @@ impl Plugin for Game {
         }
     }
     
-    fn on_scene_begin_loading(&mut self, path: &Path, ctx: &mut PluginContext) {
+    fn on_scene_begin_loading(&mut self, _path: &Path, ctx: &mut PluginContext) {
         if self.scene.is_some() {
             ctx.scenes.remove(self.scene);
         }
@@ -1069,10 +952,10 @@ impl Plugin for Game {
 
     fn on_scene_loaded(
         &mut self,
-        path: &Path,
+        _path: &Path,
         scene: Handle<Scene>,
-        data: &[u8],
-        context: &mut PluginContext,
+        _data: &[u8],
+        _context: &mut PluginContext,
     ) {
         self.scene = scene;
      }
@@ -1113,7 +996,7 @@ impl TypeUuidProvider for Player {
 
 impl ScriptTrait for Player {
     // Called once at initialization.
-    fn on_init(&mut self, context: &mut ScriptContext) {}
+    fn on_init(&mut self, _context: &mut ScriptContext) {}
     
     // Put start logic - it is called when every other script is already initialized.
     fn on_start(&mut self, context: &mut ScriptContext) { 
@@ -1122,7 +1005,7 @@ impl ScriptTrait for Player {
     }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
-    fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {}
+    fn on_os_event(&mut self, _event: &Event<()>, _context: &mut ScriptContext) {}
 
     // Called every frame at fixed rate of 60 FPS.
     fn on_update(&mut self, context: &mut ScriptContext) {
@@ -1168,11 +1051,18 @@ impl ScriptTrait for Player {
                         //the correct class methods-- player has a class field now!
                         AxisChanged(axis, value, _code) => self.class.clone().moveplayer(self, axis, value, ctx),
                         //must clone class for any method that takes a 'self' as well.
-                        ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
-                        //projectiles
-                        ButtonPressed(LeftTrigger, _) => self.class.clone().projectiles(self, ctx),
-                        //parrying
-                        ButtonPressed(RightThumb, _) => self.class.clone().parry(self, ctx),
+                        ButtonPressed(button, _) => {
+                            match button {
+                                RightTrigger => self.class.clone().start_melee_attack(self, ctx),
+                                LeftTrigger => self.class.clone().projectiles(self, ctx),
+                                RightThumb => self.class.clone().parry(self, ctx),
+                                _ => (),
+                            }},
+                        // ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
+                        // //projectiles
+                        // ButtonPressed(LeftTrigger, _) => self.class.clone().projectiles(self, ctx),
+                        // //parrying
+                        // ButtonPressed(RightThumb, _) => self.class.clone().parry(self, ctx),
                         _ => (),
                     }
                 },
@@ -1181,7 +1071,6 @@ impl ScriptTrait for Player {
                     self.class.clone().takehit(self, dam.clone(), knock.clone(), bod.clone(), send.clone(), ctx);
                 },
                 Parried{} => {self.class.clone().parried(self, ctx)},
-                _ => (),
             }
         }
     }
@@ -1211,13 +1100,13 @@ impl TypeUuidProvider for Projectile {
 
 impl ScriptTrait for Projectile {
     // Called once at initialization.
-    fn on_init(&mut self, context: &mut ScriptContext) {}
+    fn on_init(&mut self, _context: &mut ScriptContext) {}
     
     // Put start logic - it is called when every other script is already initialized.
-    fn on_start(&mut self, context: &mut ScriptContext) { }
+    fn on_start(&mut self, _context: &mut ScriptContext) { }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
-    fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {}
+    fn on_os_event(&mut self, _event: &Event<()>, _context: &mut ScriptContext) {}
 
     // Called every frame at fixed rate of 60 FPS.
     fn on_update(&mut self, ctx: &mut ScriptContext) {
@@ -1238,7 +1127,7 @@ impl ScriptTrait for Projectile {
                 //for each active contact
                 if i.has_any_active_contact {
                     //find its parent
-                    if let Some((target,t)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.try_get_script::<Player>().is_some()) {
+                    if let Some((target, _t)) = ctx.scene.graph.find_up(i.collider1, &mut |c| c.try_get_script::<Player>().is_some()) {
                         let mut knockvec = self.facing.clone();
                         knockvec.set_magnitude(3.0);
                         ctx.message_sender.send_to_target(target, Message::Hit{
