@@ -179,3 +179,30 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
         .local_transform_mut()
         .set_position(Vector3::new(player_data.1[0], player_data.1[1], player_data.1[2]));
 }
+
+///create a new button with position x,y, dimensions w,h, text, and optional alignment.
+/// used primarily to create the class selection menu
+pub fn create_player_class_button(
+    ui: &mut UserInterface, x: f32, y: f32, w:f32, h: f32, text: &str, 
+    valign: Option<VerticalAlignment>, halign: Option<HorizontalAlignment>
+) -> Handle<UiNode> {
+    //create the text widget; we do this first bc of optional alignment stuff
+    let mut b = TextBuilder::new(WidgetBuilder::new()).with_text(text);
+    if valign.is_some() {
+        b = b.with_vertical_text_alignment(valign.unwrap());
+    }
+    if halign.is_some() {
+        b = b.with_horizontal_text_alignment(halign.unwrap());
+    }
+    let textwidget = b.build(&mut ui.build_ctx());
+
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+        .with_desired_position(Vector2::new(x, y))
+        .with_width(w)
+        .with_height(h),
+    )
+    .with_content(textwidget)
+    .build(&mut ui.build_ctx())
+
+}
