@@ -15,5 +15,5 @@ pub enum Message {
     },
     Parried {
         //can eventually hold boolean to tell projectiles to be reflected
-    }
+    },
 }

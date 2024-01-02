@@ -1,10 +1,10 @@
-use crate::{Visit, Reflect, Visitor, VisitResult, FieldInfo, 
-    RigidBodyType, PlayerState, 
+use crate::{
+    Visit, Reflect, Visitor, VisitResult, FieldInfo, 
+    RigidBodyType, PlayerState, Game,
     PlayerState::{Attacking, Idle, Hit},
     Player, Projectile, set_script};
 use std::collections::{HashMap, HashSet};
 use fyrox::{
-
     core::{
         pool::Handle,
         algebra::{Vector2, Vector3},
@@ -130,6 +130,11 @@ impl Class {
     const HITDUR: i32 = 30;
 
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
+
+        //tell game to update health
+        if let Some(game) = context.plugins[0].cast_mut::<Game>() {
+            game.phealthchanged = true;
+        }
 
         //setting up the "facing chevron"
         //let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
@@ -609,6 +614,10 @@ impl Class {
                                 }
                             }
                         }
+                        //tell game to update health
+                        if let Some(game) = ctx.plugins[0].cast_mut::<Game>() {
+                            game.phealthchanged = true;
+                        }
                     }
                 },
                 _ => {
@@ -633,7 +642,10 @@ impl Class {
                             }
                         }
                     }
-
+                    //tell game to update health
+                    if let Some(game) = ctx.plugins[0].cast_mut::<Game>() {
+                        game.phealthchanged = true;
+                    }
 
 
                 }

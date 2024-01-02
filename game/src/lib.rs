@@ -69,9 +69,8 @@ use class::Class;
 
 use create::{
     create_text_with_background,
-    create_cube_rigid_body,
-    create_rect,
     set_script,
+    create_player,
 };
 
 
@@ -136,14 +135,8 @@ pub struct Game {
 
     // first 4 entries are the four "health:" widgets, then their respective strings of x for health bars
     hud: Vec<Handle<UiNode>>,
-    // player_text1: Handle<UiNode>,
-    // hud[1]: Handle<UiNode>,
-    // hud[2]: Handle<UiNode>,
-    // hud[3]: Handle<UiNode>,
-    // hud[4]: Handle<UiNode>,
-    // hud[5]: Handle<UiNode>,
-    // hud[6]: Handle<UiNode>,
-    // hud[7]: Handle<UiNode>,
+    // indicates if on_updtate should check the health bars for players
+    phealthchanged: bool,
     //ctx: UserInterface,
     //HEALTH_TXT: String,
 }
@@ -565,14 +558,7 @@ impl Game {
             
             id_list: Vec::<GamepadId>::new(),
             hud,
-            // player_text1: create_text_with_background_1(context.user_interface, "health:", 100.0, 100.0),
-            // hud[1]: create_text_with_background_2(context.user_interface, "health:", 300.0, 100.0),
-            // hud[2]: create_text_with_background_3(context.user_interface, "health:", 500.0, 100.0),
-            // hud[3]: create_text_with_background_4(context.user_interface, "health:", 700.0, 100.0),
-            // hud[4]: create_text_with_background_1(context.user_interface, "", 175.0, 100.0),
-            // hud[5]: create_text_with_background_2(context.user_interface, "", 375.0, 100.0),
-            // hud[6]: create_text_with_background_3(context.user_interface, "", 575.0, 100.0),
-            // hud[7]: create_text_with_background_4(context.user_interface, "", 775.0, 100.0),
+            phealthchanged: false,
             //HEALTH_TXT: "health:".to_string(),
         }
     }
@@ -624,177 +610,153 @@ impl Plugin for Game {
         let ctx = &mut context.user_interface;
         // let health_txt = "health:";
         //let text = "".to_string();
+
+        // updates all player health ui
+        if self.phealthchanged {
         
-        // for player 1
-        if self.players.len() > 0 {
-            // creates health variable here
-            let mut h: u32 = 10;
+            // for player 1
+            if self.players.len() > 0 {
+                // creates health variable here
+                let mut h: u32 = 10;
 
-            // makes "health:" visible
-            ctx.build_ctx()[self.hud[0].clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.hud[0];
-            if let Some(txt) = ctx.build_ctx()[self.hud[0].clone()].cast::<Text>() {
-                q = txt.parent.clone();
-            }
-            ctx.build_ctx()[q].set_visibility(true);
-        
+            
 
-            // gets the player handle from hash map for player 1
-            if let Some(player_script) = self.players.get(&self.id_list[0]) {
-                // gets the node
-                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
-                // gets the actual player object
-                let node2 = node1.script_mut().expect("error").cast_mut::<Player>().expect("error");
-                // sets health variable to player's health
-                h = node2.health;
-            }
+                // gets the player handle from hash map for player 1
+                if let Some(player_script) = self.players.get(&self.id_list[0]) {
+                    // gets the node
+                    let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                    // gets the actual player object
+                    let node2 = node1.script_mut().expect("error").cast_mut::<Player>().expect("error");
+                    // sets health variable to player's health
+                    h = node2.health;
+                }
 
-            // creates text variable to be passed into text function
-            let mut text: String = "".to_string();
-            let mut i = 0;
-            // makes the text variable have the number of xs corresponding to health value
-            while i < h {
-                text = text.to_owned() + "x";
-                i = i+1;
-            }
+                // creates text variable to be passed into text function
+                let mut text: String = "".to_string();
+                let mut i = 0;
+                // makes the text variable have the number of xs corresponding to health value
+                while i < h {
+                    text = text.to_owned() + "x";
+                    i = i+1;
+                }
 
-            ctx.send_message(TextMessage::text(
-                self.hud[4],
-                MessageDirection::ToWidget,
-                text.to_owned(),
-            ));
-            let mut p: Handle<UiNode> = self.hud[4];
-            if let Some(wid) = ctx.build_ctx()[self.hud[4].clone()].cast::<Text>() {
-                p = wid.parent.clone();
-            }
-            ctx.build_ctx()[p].set_visibility(true);
-        }
-
-        // player 2
-        if self.players.len() > 1 {
-            // creates health variable here
-            let mut h: u32 = 10;
-            // makes "health:" visible
-            ctx.build_ctx()[self.hud[1].clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.hud[1];
-            if let Some(txt) = ctx.build_ctx()[self.hud[1].clone()].cast::<Text>() {
-                q = txt.parent.clone();
-            }
-            ctx.build_ctx()[q].set_visibility(true);
-
-            // gets the player handle from hash map for player 1
-            if let Some(player_script) = self.players.get(&self.id_list[1]) {
-                // gets the node
-                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
-                // gets the actual player object
-                let node2 = node1.script().unwrap().cast::<Player>().unwrap();
-                // sets health variable to player's health
-                h = node2.health;
+                ctx.send_message(TextMessage::text(
+                    self.hud[4],
+                    MessageDirection::ToWidget,
+                    text.to_owned(),
+                ));
+                let mut p: Handle<UiNode> = self.hud[4];
+                if let Some(wid) = ctx.build_ctx()[self.hud[4].clone()].cast::<Text>() {
+                    p = wid.parent.clone();
+                }
+                ctx.build_ctx()[p].set_visibility(true);
             }
 
-            // creates text variable to be passed into text function
-            let mut text: String = "".to_string();
-            let mut i = 0;
-            // makes the text variable have the number of xs corresponding to health value
-            while i < h {
-                text = text.to_owned() + "x";
-                i = i+1;
-            }
-            ctx.send_message(TextMessage::text(
-                self.hud[5],
-                MessageDirection::ToWidget,
-                text.to_owned(),
-            ));
-            let mut p: Handle<UiNode> = self.hud[5];
-            if let Some(wid) = ctx.build_ctx()[self.hud[5].clone()].cast::<Text>() {
-                p = wid.parent.clone();
-            }
-            ctx.build_ctx()[p].set_visibility(true);
-        }
+            // player 2
+            if self.players.len() > 1 {
+                // creates health variable here
+                let mut h: u32 = 10;
 
-        // player 3
-        if self.players.len() > 2 {
-            // creates health variable here
-            let mut h: u32 = 10;
-            // makes "health:" visible
-            ctx.build_ctx()[self.hud[2].clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.hud[2];
-            if let Some(txt) = ctx.build_ctx()[self.hud[2].clone()].cast::<Text>() {
-                q = txt.parent.clone();
-            }
-            ctx.build_ctx()[q].set_visibility(true);
-            // let playerText3: Handle<UiNode> = create_text_with_background_2(ctx, health_txt, 500.0, 1000.0);
-            // gets the player handle from hash map for player 1
-            if let Some(player_script) = self.players.get(&self.id_list[2]) {
-                // gets the node
-                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
-                // gets the actual player object
-                let node2 = node1.script().unwrap().cast::<Player>().unwrap();
-                // sets health variable to player's health
-                h = node2.health;
+                // gets the player handle from hash map for player 2
+                if let Some(player_script) = self.players.get(&self.id_list[1]) {
+                    // gets the node
+                    let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                    // gets the actual player object
+                    let node2 = node1.script().unwrap().cast::<Player>().unwrap();
+                    // sets health variable to player's health
+                    h = node2.health;
+                }
+
+                // creates text variable to be passed into text function
+                let mut text: String = "".to_string();
+                let mut i = 0;
+                // makes the text variable have the number of xs corresponding to health value
+                while i < h {
+                    text = text.to_owned() + "x";
+                    i = i+1;
+                }
+                ctx.send_message(TextMessage::text(
+                    self.hud[5],
+                    MessageDirection::ToWidget,
+                    text.to_owned(),
+                ));
+                let mut p: Handle<UiNode> = self.hud[5];
+                if let Some(wid) = ctx.build_ctx()[self.hud[5].clone()].cast::<Text>() {
+                    p = wid.parent.clone();
+                }
+                ctx.build_ctx()[p].set_visibility(true);
             }
 
-            // creates text variable to be passed into text function
-            let mut text: String = "".to_string();
-            let mut i = 0;
-            // makes the text variable have the number of xs corresponding to health value
-            while i < h {
-                text = text.to_owned() + "x";
-                i = i+1;
+            // player 3
+            if self.players.len() > 2 {
+                // creates health variable here
+                let mut h: u32 = 10;
+                // gets the player handle from hash map for player 3
+                if let Some(player_script) = self.players.get(&self.id_list[2]) {
+                    // gets the node
+                    let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                    // gets the actual player object
+                    let node2 = node1.script().unwrap().cast::<Player>().unwrap();
+                    // sets health variable to player's health
+                    h = node2.health;
+                }
+
+                // creates text variable to be passed into text function
+                let mut text: String = "".to_string();
+                let mut i = 0;
+                // makes the text variable have the number of xs corresponding to health value
+                while i < h {
+                    text = text.to_owned() + "x";
+                    i = i+1;
+                }
+
+                ctx.send_message(TextMessage::text(
+                    self.hud[6],
+                    MessageDirection::ToWidget,
+                    text.to_owned(),
+                ));
+                let mut p: Handle<UiNode> = self.hud[6];
+                if let Some(wid) = ctx.build_ctx()[self.hud[6].clone()].cast::<Text>() {
+                    p = wid.parent.clone();
+                }
+                ctx.build_ctx()[p].set_visibility(true);
             }
 
-            ctx.send_message(TextMessage::text(
-                self.hud[6],
-                MessageDirection::ToWidget,
-                text.to_owned(),
-            ));
-            let mut p: Handle<UiNode> = self.hud[6];
-            if let Some(wid) = ctx.build_ctx()[self.hud[6].clone()].cast::<Text>() {
-                p = wid.parent.clone();
-            }
-            ctx.build_ctx()[p].set_visibility(true);
-        }
+            // player 4
+            if self.players.len() > 3 {
+                // creates health variable here
+                let mut h = 10;
+                // gets the player handle from hash map for player 4
+                if let Some(player_script) = self.players.get(&self.id_list[3]) {
+                    // gets the node
+                    let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
+                    // gets the actual player object
+                    let node2 = node1.script().unwrap().cast::<Player>().unwrap();
+                    // sets health variable to player's health
+                    h = node2.health;
+                }
 
-        // player 4
-        if self.players.len() > 3 {
-            // creates health variable here
-            let mut h = 10;
-            // makes "health:" visible
-            ctx.build_ctx()[self.hud[3].clone()].set_visibility(true);
-            let mut q: Handle<UiNode> = self.hud[3];
-            if let Some(txt) = ctx.build_ctx()[self.hud[3].clone()].cast::<Text>() {
-                q = txt.parent.clone();
-            }
-            ctx.build_ctx()[q].set_visibility(true);
-            // gets the player handle from hash map for player 1
-            if let Some(player_script) = self.players.get(&self.id_list[3]) {
-                // gets the node
-                let node1 = &mut context.scenes[self.scene].graph[player_script.clone()];
-                // gets the actual player object
-                let node2 = node1.script().unwrap().cast::<Player>().unwrap();
-                // sets health variable to player's health
-                h = node2.health;
-            }
+                // creates text variable to be passed into text function
+                let mut text: String = "".to_string();
+                let mut i = 0;
+                // makes the text variable have the number of xs corresponding to health value
+                while i < h {
+                    text = text.to_owned() + "x";
+                    i = i+1;
+                }
 
-            // creates text variable to be passed into text function
-            let mut text: String = "".to_string();
-            let mut i = 0;
-            // makes the text variable have the number of xs corresponding to health value
-            while i < h {
-                text = text.to_owned() + "x";
-                i = i+1;
+                ctx.send_message(TextMessage::text(
+                    self.hud[7],
+                    MessageDirection::ToWidget,
+                    text.to_owned(),
+                ));
+                let mut p: Handle<UiNode> = self.hud[7];
+                if let Some(wid) = ctx.build_ctx()[self.hud[7].clone()].cast::<Text>() {
+                    p = wid.parent.clone();
+                }
+                ctx.build_ctx()[p].set_visibility(true);
             }
-
-            ctx.send_message(TextMessage::text(
-                self.hud[7],
-                MessageDirection::ToWidget,
-                text.to_owned(),
-            ));
-            let mut p: Handle<UiNode> = self.hud[7];
-            if let Some(wid) = ctx.build_ctx()[self.hud[7].clone()].cast::<Text>() {
-                p = wid.parent.clone();
-            }
-            ctx.build_ctx()[p].set_visibility(true);
+            self.phealthchanged = false;
         }
 
         // loop{
@@ -902,7 +864,10 @@ impl Plugin for Game {
                 }            
             }
 
+            // remove class choice ui, add health bars
             if message.destination() == self.start_button_handle {
+
+
                 for (player, class) in &self.playerclasses {
                     println!("{player:?} is {class:?}");
                 }
@@ -940,6 +905,19 @@ impl Plugin for Game {
                     create_player(i, class, id, context, self);
                     i += 1;
                 }
+
+                let ctx = &mut context.user_interface;
+
+                for i in 0..self.players.len() {
+                    // makes "health:" visible
+                    ctx.build_ctx()[self.hud[i].clone()].set_visibility(true);
+                    let mut q: Handle<UiNode> = self.hud[i];
+                    if let Some(txt) = ctx.build_ctx()[self.hud[i].clone()].cast::<Text>() {
+                        q = txt.parent.clone();
+                    }
+                    ctx.build_ctx()[q].set_visibility(true);
+                }
+
             }
         }
     }
@@ -1154,107 +1132,3 @@ impl ScriptTrait for Projectile {
     }
 }
 
-
-
-
-
-
-fn create_player(player_num: i8, player_class: Class, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
-    let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
-
-    if player_num == 1 {
-        player_data.0 = Vec::from([66, 245, 158]);
-        player_data.1 = Vec::from([6.0, 3.0, 0.0]);
-    }
-    else if player_num == 2 {
-        player_data.0 = Vec::from([66, 167, 245]);
-        player_data.1 = Vec::from([-6.0, 3.0, 0.0]);
-    }
-    else if player_num == 3 {
-        player_data.0 = Vec::from([194, 136, 252]);
-        player_data.1 = Vec::from([-6.0, -3.0, 0.0]);
-    }
-    else if player_num == 4 {
-        player_data.0 = Vec::from([250, 135, 215]);
-        player_data.1 = Vec::from([6.0, -3.0, 0.0]);
-    }
-    else {
-        println!("Player cap reached");
-        return;
-    }
-
-    //path to correct sprite, pre-coloring based on team
-    let path = match player_class.clone() {
-        Class::Barbarian => {"data/White_square.png".to_string()},
-        Class::Fighter => {"data/White_circle.png".to_string()},
-        Class::Rogue => {"data/White_triangle.png".to_string()},
-        Class::Wizard => {"data/White_star.png".to_string()},
-
-    };
-
-    //create a new player
-    let player_handle = create_cube_rigid_body(&mut context.scenes[game.scene].graph);
-    //create a sprite for the player
-    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0, path);
-    //make the sprite a child of the player
-    context.scenes[game.scene].graph.link_nodes(sprite_handle, player_handle);
-    //add the player to the game's struct
-    game.players.insert(id, player_handle);
-    // add player ID to vector of IDs
-    game.id_list.push(id);
-
-    match player_class {
-        Class::Barbarian => {
-            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-            Player{
-                class: Class::Barbarian,
-                state: PlayerState::Idle,
-                weapon: None,
-                    cooldown: 0,
-                    facing: Vector3::new(0.0,1.0,0.0),
-                health: 14,
-                charges: 0,
-            })
-        },
-        Class::Fighter => {
-            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-            Player{
-                class: Class::Fighter,
-                state: PlayerState::Idle,
-                weapon: None,
-                    cooldown: 0,
-                    facing: Vector3::new(0.0,1.0,0.0),
-                health: 12,
-                charges: 0,
-            })
-        },
-        Class::Rogue => {
-            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-            Player{
-            class: Class::Rogue,
-            state: PlayerState::Idle,
-            weapon: None,
-                cooldown: 0,
-                facing: Vector3::new(0.0,1.0,0.0),
-            health: 7,
-            charges: 0,
-            })
-        },
-        Class::Wizard => {
-            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
-            Player{
-            class: Class::Wizard,
-            state: PlayerState::Idle,
-            weapon: None,
-                cooldown: 0,
-                facing: Vector3::new(0.0,1.0,0.0),
-            health: 7,
-            charges: 0,
-        })
-        }
-    }
-
-    context.scenes[game.scene].graph[player_handle.clone()]
-        .local_transform_mut()
-        .set_position(Vector3::new(player_data.1[0], player_data.1[1], player_data.1[2]));
-}

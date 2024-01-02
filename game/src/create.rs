@@ -78,3 +78,104 @@ pub fn create_centered_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode
     .with_text(text)
     .build(&mut ui.build_ctx())
 }
+
+//create and position a new player object
+pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
+    let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
+
+    if player_num == 1 {
+        player_data.0 = Vec::from([66, 245, 158]);
+        player_data.1 = Vec::from([6.0, 3.0, 0.0]);
+    }
+    else if player_num == 2 {
+        player_data.0 = Vec::from([66, 167, 245]);
+        player_data.1 = Vec::from([-6.0, 3.0, 0.0]);
+    }
+    else if player_num == 3 {
+        player_data.0 = Vec::from([194, 136, 252]);
+        player_data.1 = Vec::from([-6.0, -3.0, 0.0]);
+    }
+    else if player_num == 4 {
+        player_data.0 = Vec::from([250, 135, 215]);
+        player_data.1 = Vec::from([6.0, -3.0, 0.0]);
+    }
+    else {
+        println!("Player cap reached");
+        return;
+    }
+
+    //path to correct sprite, pre-coloring based on team
+    let path = match player_class.clone() {
+        Class::Barbarian => {"data/White_square.png".to_string()},
+        Class::Fighter => {"data/White_circle.png".to_string()},
+        Class::Rogue => {"data/White_triangle.png".to_string()},
+        Class::Wizard => {"data/White_star.png".to_string()},
+
+    };
+
+    //create a new player
+    let player_handle = create_cube_rigid_body(&mut context.scenes[game.scene].graph);
+    //create a sprite for the player
+    let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0, path);
+    //make the sprite a child of the player
+    context.scenes[game.scene].graph.link_nodes(sprite_handle, player_handle);
+    //add the player to the game's struct
+    game.players.insert(id, player_handle);
+    // add player ID to vector of IDs
+    game.id_list.push(id);
+
+    match player_class {
+        Class::Barbarian => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
+                class: Class::Barbarian,
+                state: PlayerState::Idle,
+                weapon: None,
+                    cooldown: 0,
+                    facing: Vector3::new(0.0,1.0,0.0),
+                health: 14,
+                charges: 0,
+            })
+        },
+        Class::Fighter => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
+                class: Class::Fighter,
+                state: PlayerState::Idle,
+                weapon: None,
+                    cooldown: 0,
+                    facing: Vector3::new(0.0,1.0,0.0),
+                health: 12,
+                charges: 0,
+            })
+        },
+        Class::Rogue => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
+            class: Class::Rogue,
+            state: PlayerState::Idle,
+            weapon: None,
+                cooldown: 0,
+                facing: Vector3::new(0.0,1.0,0.0),
+            health: 7,
+            charges: 0,
+            })
+        },
+        Class::Wizard => {
+            set_script(&mut context.scenes[game.scene].graph[player_handle.clone()], 
+            Player{
+            class: Class::Wizard,
+            state: PlayerState::Idle,
+            weapon: None,
+                cooldown: 0,
+                facing: Vector3::new(0.0,1.0,0.0),
+            health: 7,
+            charges: 0,
+        })
+        }
+    }
+
+    context.scenes[game.scene].graph[player_handle.clone()]
+        .local_transform_mut()
+        .set_position(Vector3::new(player_data.1[0], player_data.1[1], player_data.1[2]));
+}
