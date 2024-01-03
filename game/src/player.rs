@@ -4,6 +4,8 @@
 // health
 use crate::*;
 
+use gilrs::Axis;
+
 #[derive(Visit, Reflect, Debug, Clone, Default, PartialEq)]
 pub enum PlayerState {
     #[default]
@@ -21,7 +23,7 @@ pub enum PlayerState {
 pub struct Player{
     pub class: Class,
     pub state: PlayerState,
-    pub weapon: Option<Handle<Node>>,
+    pub weapon: Handle<Node>,
     pub cooldown: i32,
     pub facing: Vector3<f32>, //z axis should always be 0.0 here!
     pub health: u32,
@@ -44,7 +46,12 @@ impl ScriptTrait for Player {
     // Put start logic - it is called when every other script is already initialized.
     fn on_start(&mut self, context: &mut ScriptContext) { 
         context.message_dispatcher.subscribe_to::<Message>(context.handle);
-        self.class.clone().startup(self, context);
+        //self.class.clone().startup(self, context);
+
+        //tell game to update health
+        if let Some(game) = context.plugins[0].cast_mut::<Game>() {
+            game.phealthchanged = true;
+        }
     }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
@@ -52,6 +59,7 @@ impl ScriptTrait for Player {
 
     // Called every frame at fixed rate of 60 FPS.
     fn on_update(&mut self, context: &mut ScriptContext) {
+        //update the various states 
         match self.state {
             PlayerState::Dead => return(),
             PlayerState::Attacking(frame) => {self.class.clone().cont_attack(self, frame, context)},
@@ -73,9 +81,15 @@ impl ScriptTrait for Player {
         };
 
         self.cooldown += 1;
-        Class::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
+        //make the player face towards the facing vector
+        Self::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
 
     }
+
+
+
+
+
 
     fn on_message(&mut self,
         message: &mut dyn ScriptMessagePayload,
@@ -92,8 +106,7 @@ impl ScriptTrait for Player {
                     match event {
                         // put the various controller events here, as well as calls to
                         //the correct class methods-- player has a class field now!
-                        AxisChanged(axis, value, _code) => self.class.clone().moveplayer(self, axis, value, ctx),
-                        //must clone class for any method that takes a 'self' as well.
+                        AxisChanged(axis, value, _code) => self.moveplayer(axis, value, ctx),
                         ButtonPressed(button, _) => {
                             match button {
                                 RightTrigger => self.class.clone().start_melee_attack(self, ctx),
@@ -122,4 +135,45 @@ impl ScriptTrait for Player {
     fn id(&self) -> Uuid {
         Self::type_uuid()
     }
+}
+
+
+impl Player {
+    
+    pub fn moveplayer(&mut self, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
+        if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+            match (axis, &self.class, self.state.clone()) {
+                (_, _, PlayerState::Hit(_)) => {}, //cant move when hit
+                (_, _, PlayerState::Charging) => {} //cant change direction while charging
+
+                (g::Axis::LeftStickX, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Class::BARBSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Class::ROGSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Class::WIZSPD, rigid_body.lin_vel().y));},
+                (g::Axis::LeftStickX, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(-value*Class::FIGSPD, rigid_body.lin_vel().y));},
+            
+                (g::Axis::LeftStickY, Class::Barbarian, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Class::BARBSPD));},
+                (g::Axis::LeftStickY, Class::Rogue, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Class::ROGSPD));},
+                (g::Axis::LeftStickY, Class::Wizard, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Class::WIZSPD));},
+                (g::Axis::LeftStickY, Class::Fighter, _) => {rigid_body.set_lin_vel(Vector2::new(rigid_body.lin_vel().x, value*Class::FIGSPD));},
+
+                //can't turn while attacking or parrying
+                (g::Axis::RightStickX, _, PlayerState::Attacking(_)) => {},
+                (g::Axis::RightStickY, _, PlayerState::Attacking(_)) => {},
+                (g::Axis::RightStickX, _, PlayerState::Parry(_)) => {},
+                (g::Axis::RightStickY, _, PlayerState::Parry(_)) => {},
+
+                (g::Axis::RightStickX, _, _) if (value.clone() != 0.0) => {self.facing.x = -*value;},
+                (g::Axis::RightStickY, _, _) if (value.clone() != 0.0) => {self.facing.y = *value;},
+                _ => (),
+            }
+        } else {println!("didn't get rigidbody");} 
+    }
+
+    pub fn update_look(facing: Vector3<f32>, node: &mut Node) {
+        node.local_transform_mut().set_rotation(UnitQuaternion::face_towards(&Vector3::z_axis(), &facing));
+    }
+
+
+
+
 }

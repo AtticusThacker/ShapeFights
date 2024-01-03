@@ -28,7 +28,7 @@ use fyrox::{
         UiNode, UserInterface, HorizontalAlignment, VerticalAlignment,
         brush::Brush,
         button::{ButtonBuilder, ButtonMessage},
-        core::color::Color,
+        core::{color::Color, algebra::UnitQuaternion},
         widget::WidgetBuilder,
         border::BorderBuilder, 
         message::{UiMessage, MessageDirection}, 
@@ -63,6 +63,7 @@ pub mod create;
 pub mod player;
 pub mod projectile;
 pub mod game;
+pub mod weapon;
 
 use messages::{
     Message,
@@ -81,7 +82,7 @@ use projectile::*;
 
 use game::*;
 
-
+use weapon::*;
 
 
 
@@ -97,12 +98,11 @@ impl PluginConstructor for GameConstructor {
     fn register(&self, context: PluginRegistrationContext) {
         // Register your scripts here.
         context.serialization_context.script_constructors.add::<Player>("Player");
+        context.serialization_context.script_constructors.add::<Projectile>("Projectile");
+        context.serialization_context.script_constructors.add::<Weapon>("Weapon");
     }
 
     fn create_instance(&self, scene_path: Option<&str>, context: PluginContext) -> Box<dyn Plugin> {
         Box::new(Game::new(scene_path, context))
     }
 }
-
-// TODO:
-// work on class...

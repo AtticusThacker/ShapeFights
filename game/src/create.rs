@@ -79,6 +79,40 @@ pub fn create_centered_text(ui: &mut UserInterface, text: &str) -> Handle<UiNode
     .build(&mut ui.build_ctx())
 }
 
+pub fn create_weapon_body(class: &Class, context: &mut PluginContext, game: &Game) -> Handle<Node> {
+    //setting up melee weapon
+    let weapontype = match class {
+        Class::Barbarian => Class::BARBWEP,
+        Class::Rogue => Class::ROGWEP,
+        Class::Wizard => Class::WIZWEP,
+        Class::Fighter => Class::FIGWEP,
+
+    };
+    RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+        RectangleBuilder::new(
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    // Size of the rectangle is defined only by scale.
+                    .with_local_scale(Vector3::new(weapontype.half_extents[0].clone()*2.0, weapontype.half_extents[1].clone()*2.0,1.0))
+                    .build()
+            )
+        )
+            .with_texture(context.resource_manager.request::<Texture, _>("data/white_rectangle.png"))
+            .build(&mut context.scenes[game.scene].graph),
+        // Rigid body must have at least one collider
+        ColliderBuilder::new(BaseBuilder::new())
+            .with_shape(ColliderShape::Cuboid(weapontype))
+            .with_sensor(true)
+            .build(&mut context.scenes[game.scene].graph),
+        
+        ]))
+    .with_body_type(RigidBodyType::KinematicPositionBased)
+    .build(&mut context.scenes[game.scene].graph)
+
+    
+
+}
+
 //create and position a new player object
 pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context: &mut PluginContext, game: &mut Game) {
     let mut player_data = (Vec::<u8>::new(), Vec::<f32>::new());
@@ -119,6 +153,17 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
     let sprite_handle = create_rect(&mut context.scenes[game.scene].graph, context.resource_manager, &player_data.0, path);
     //make the sprite a child of the player
     context.scenes[game.scene].graph.link_nodes(sprite_handle, player_handle);
+    //make a weapon rigid body / collider
+    let weapon_handle = create_weapon_body(&player_class, context, &game);
+    //make the weapon a child of the player
+    context.scenes[game.scene].graph.link_nodes(weapon_handle, player_handle);
+    //add a weapon script to the weapon
+    set_script(&mut context.scenes[game.scene].graph[weapon_handle.clone()],
+        Weapon{
+            player: player_handle.clone(),
+            class: player_class.clone(),
+        }
+    );
     //add the player to the game's struct
     game.players.insert(id, player_handle);
     // add player ID to vector of IDs
@@ -130,7 +175,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
             Player{
                 class: Class::Barbarian,
                 state: PlayerState::Idle,
-                weapon: None,
+                weapon: weapon_handle,
                     cooldown: 0,
                     facing: Vector3::new(0.0,1.0,0.0),
                 health: 14,
@@ -142,7 +187,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
             Player{
                 class: Class::Fighter,
                 state: PlayerState::Idle,
-                weapon: None,
+                weapon: weapon_handle,
                     cooldown: 0,
                     facing: Vector3::new(0.0,1.0,0.0),
                 health: 12,
@@ -154,7 +199,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
             Player{
             class: Class::Rogue,
             state: PlayerState::Idle,
-            weapon: None,
+            weapon: weapon_handle,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 7,
@@ -166,7 +211,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
             Player{
             class: Class::Wizard,
             state: PlayerState::Idle,
-            weapon: None,
+            weapon: weapon_handle,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
             health: 7,
