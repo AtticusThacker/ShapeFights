@@ -53,6 +53,11 @@ impl ScriptTrait for Player {
         if let Some(game) = context.plugins[0].cast_mut::<Game>() {
             game.phealthchanged = true;
         }
+
+        //setting up the "facing chevron"
+        let chevron = create_facing_chevron(self.facing.clone(), context);
+
+        context.scene.graph.link_nodes(chevron, context.handle);
     }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
@@ -67,7 +72,7 @@ impl ScriptTrait for Player {
             PlayerState::Hit(frame) => {self.cont_hit(frame, context)},
 
             PlayerState::Charging => {self.class.clone().charging(self, context)},
-            PlayerState::Parry(frame) => {self.class.clone().cont_parry(self, frame, context)},
+            PlayerState::Parry(frame) => {self.cont_parry(frame, context)},
             PlayerState::Riposting => {self.class.clone().riposting(self, context)}
             _ => (),
         }
@@ -290,6 +295,20 @@ impl Player {
         ctx.message_sender.send_to_target(self.weapon, 
             Message::Start_Parry{}
         );
+    }
+
+    pub fn cont_parry(&mut self, frame: i32, ctx: &mut ScriptContext) {
+        if frame == 16 {
+            //put blade away
+            ctx.message_sender.send_to_target(self.weapon, 
+                Message::Attack{s: false}
+            );
+            self.state = PlayerState::Parry(frame+1);
+        } else if frame == 28 {
+            self.state = PlayerState::Idle;
+        }  else {
+            self.state = PlayerState::Parry(frame+1);
+        }
     }
 
 }

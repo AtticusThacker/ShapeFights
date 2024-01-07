@@ -1,6 +1,8 @@
+
+
 //this module contains various functions to streamline creation of fyrox objects.
 use crate::*;
-
+use fyrox::scene::{dim2::collider::TriangleShape, transform::Transform};
 // the functions fyrox gives us to create text were not great so i made my own
 // create text with a background (like highlighted)
 // take in floating point numbers as parameters for position
@@ -251,4 +253,39 @@ pub fn create_player_class_button(
     .with_content(textwidget)
     .build(&mut ui.build_ctx())
 
+}
+
+
+pub fn create_facing_chevron(facing: Vector3<f32>, context: &mut ScriptContext) -> Handle<Node> {
+    //let mut trans = context.scene.graph[context.handle.clone()].local_transform().clone();
+    let mut trans = Transform::identity();
+    let mut off = facing.clone();
+    off.set_magnitude(0.3);
+    trans.offset(off);
+    let chevron = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+        RectangleBuilder::new(
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    // Size of the rectangle is defined only by scale.
+                    .with_local_scale(Vector3::new(0.25,-0.25,0.1))
+                    .build()
+            )
+        )
+        .with_texture(context.resource_manager.request::<Texture, _>("data/White_chevron.png"))
+        .build(&mut context.scene.graph),
+        ColliderBuilder::new(BaseBuilder::new())
+                .with_shape(fyrox::scene::dim2::collider::ColliderShape::Triangle(TriangleShape{
+                    a: Vector2::new(0.0,0.25),
+                    b: Vector2::new(-0.15,0.0),
+                    c: Vector2::new(0.15,0.0),
+                }))
+                .with_sensor(true)
+                .build(&mut context.scene.graph),
+        ])
+        .with_local_transform(trans)
+    )
+    .with_body_type(RigidBodyType::KinematicPositionBased)
+    .build(&mut context.scene.graph);
+
+    return chevron;
 }

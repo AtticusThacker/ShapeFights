@@ -74,8 +74,13 @@ impl ScriptTrait for Weapon {
         //downcast the message to the message type we define in messages.rs
         if let Some(message) = message.downcast_ref::<Message>(){
             match message {
+                //take weapon out for melee attack
                 Message::Attack{s} if *s => self.start_melee_attack(ctx),
+                //put weapon away; after many events, like the end of an action or being hit
                 Message::Attack{s} if !*s => self.restore_weapon_mes(ctx),
+                //start a parry
+                Message::Start_Parry{} => self.start_parry(ctx),
+                Message::Hit{sender, .. } => {self.takehit(sender.clone(), ctx)},
                 _ => (),
             }
         }
@@ -225,7 +230,28 @@ impl Weapon {
         }
     }
 
+    pub fn start_parry(&mut self, ctx: &mut ScriptMessageContext) {
+        //move blade in front and make visible / collidable
+        if let Some((chandle, _)) = ctx.scene.graph.find(ctx.handle, &mut |c| c.is_collider2d()) {
+            ctx.scene.graph[chandle.clone()].as_collider2d_mut().set_is_sensor(false);
+        }
+        let weapnode = &mut ctx.scene.graph[ctx.handle];
+        weapnode.set_visibility(true);
+        if let Some(weapon) = weapnode.cast_mut::<RigidBody>(){
+            //rotate the weapon out in front
+            weapon.local_transform_mut().set_rotation(UnitQuaternion::from_axis_angle(&Vector3::z_axis(), 0.0));
+        }
+    }
 
+    ///should only be called mid-parry
+    pub fn takehit(&mut self, sender: Handle<Node>, ctx: &mut ScriptMessageContext) {
+        //tell the attacker to put their weapon away
+        ctx.message_sender.send_to_target(sender, 
+            Message::Attack{s: false}
+        );
+        // add a rogue charge on a successful parry
+
+    }
 
 }
 
@@ -233,7 +259,6 @@ impl Weapon {
 // parry fn changes weapon stuff
 // takehit (should only be called when a parry is successful!) should return a "parried" message
 // on_message should call a parried fn when recieve a parried message
-// on_parried fn should get rid of sword 
 
 
 //barbarian attacks dont benefit from charge
