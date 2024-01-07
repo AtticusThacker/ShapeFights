@@ -360,7 +360,6 @@ impl Class {
                             ctx.message_sender.send_to_target(target, Message::Hit{
                                 damage: dam, 
                                 knockback: knockvec,
-                                body: phandle.clone(),
                                 sender: ctx.handle.clone()
                             });
                             match script.class {
@@ -526,7 +525,6 @@ impl Class {
                             ctx.message_sender.send_to_target(phandle, Message::Hit{
                                 damage: 3 * Self::ROGDAM, 
                                 knockback: knockvec,
-                                body: phandle.clone(),
                                 sender: ctx.handle.clone()
                             });
                             // if let Some(s) = p.as_rigid_body2d().script() {
@@ -660,7 +658,7 @@ impl Class {
     }
 
     pub fn die(&self, script: &mut Player, context: &mut ScriptMessageContext) {
-        script.state = PlayerState::Dead;
+        script.state = PlayerState::Dead(100); //respawn time later?
         context.scene.graph[context.handle.clone()].set_enabled(false);
         context.scene.graph[context.handle.clone()].set_visibility(false);
     }

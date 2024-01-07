@@ -106,3 +106,10 @@ impl PluginConstructor for GameConstructor {
         Box::new(Game::new(scene_path, context))
     }
 }
+
+
+// todo BALANCE:
+// implement barbarian charge attacks dealing extra damage?
+// backing up is slower?
+// projectiles are faster/ start closer to the character
+// 

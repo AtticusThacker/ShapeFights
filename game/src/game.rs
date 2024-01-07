@@ -33,7 +33,7 @@ impl Game {
     pub fn new(scene_path: Option<&str>, context: PluginContext) -> Self {
         context
             .async_scene_loader
-            .request(scene_path.unwrap_or("data/scene.rgs"));
+            .request(scene_path.unwrap_or("data/scene1.rgs"));
 
         //create Heads Up Display
         let color1 = Color::opaque(66, 245, 158); 
@@ -342,22 +342,22 @@ impl Plugin for Game {
                     4 if self.idList.len() > 0 => {self.playerclasses.insert(self.idList[0], Class::Fighter);},
 
                     //player 2 class buttons
-                    5 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[0], Class::Barbarian);},
-                    6 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[0], Class::Rogue);},
-                    7 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[0], Class::Wizard);},
-                    8 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[0], Class::Fighter);},
+                    5 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[1], Class::Barbarian);},
+                    6 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[1], Class::Rogue);},
+                    7 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[1], Class::Wizard);},
+                    8 if self.idList.len() > 1 => {self.playerclasses.insert(self.idList[1], Class::Fighter);},
 
                     //player 3 class buttons
-                    9 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[0], Class::Barbarian);},
-                    10 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[0], Class::Rogue);},
-                    11 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[0], Class::Wizard);},
-                    12 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[0], Class::Fighter);},
+                    9 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[2], Class::Barbarian);},
+                    10 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[2], Class::Rogue);},
+                    11 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[2], Class::Wizard);},
+                    12 if self.idList.len() > 2 => {self.playerclasses.insert(self.idList[2], Class::Fighter);},
 
                     //player 4 class buttons
-                    13 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[0], Class::Barbarian);},
-                    14 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[0], Class::Rogue);},
-                    15 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[0], Class::Wizard);},
-                    16 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[0], Class::Fighter);},
+                    13 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[3], Class::Barbarian);},
+                    14 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[3], Class::Rogue);},
+                    15 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[3], Class::Wizard);},
+                    16 if self.idList.len() > 3 => {self.playerclasses.insert(self.idList[3], Class::Fighter);},
 
                     //start button
                     0 => {

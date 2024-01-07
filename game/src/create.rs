@@ -107,6 +107,7 @@ pub fn create_weapon_body(class: &Class, context: &mut PluginContext, game: &Gam
         
         ]))
     .with_body_type(RigidBodyType::KinematicPositionBased)
+    .with_ccd_enabled(true)
     .build(&mut context.scenes[game.scene].graph)
 
     

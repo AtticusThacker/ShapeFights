@@ -9,7 +9,7 @@ fn main() {
         &event_loop,
         Some(StartupData {
             working_directory: Default::default(),
-            scene: "data/scene.rgs".into(),
+            scene: "data/scene1.rgs".into(),
         }),
     );
     editor.add_game_plugin(GameConstructor);

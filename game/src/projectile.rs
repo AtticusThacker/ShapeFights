@@ -53,7 +53,6 @@ impl ScriptTrait for Projectile {
                         ctx.message_sender.send_to_target(target, Message::Hit{
                             damage: 3, 
                             knockback: knockvec,
-                            body: target.clone(),
                             sender: ctx.handle.clone()
                         });
                     }

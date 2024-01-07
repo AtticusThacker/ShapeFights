@@ -4,6 +4,7 @@
 // health
 use crate::*;
 
+use fyrox::script::ScriptMessage;
 use gilrs::Axis;
 
 #[derive(Visit, Reflect, Debug, Clone, Default, PartialEq)]
@@ -11,7 +12,7 @@ pub enum PlayerState {
     #[default]
     Idle,
     Charging,
-    Dead,
+    Dead(i32),
     Riposting,
     //the field holds the number of frames the player is into the action
     Attacking(i32),
@@ -61,9 +62,9 @@ impl ScriptTrait for Player {
     fn on_update(&mut self, context: &mut ScriptContext) {
         //update the various states 
         match self.state {
-            PlayerState::Dead => return(),
-            PlayerState::Attacking(frame) => {self.class.clone().cont_attack(self, frame, context)},
-            PlayerState::Hit(frame) => {self.class.clone().cont_hit(self, frame, context)},
+            PlayerState::Dead(_) => return(), //later, we can use this for a respawn coundown
+            PlayerState::Attacking(frame) => {self.check_attack(frame, context)},
+            PlayerState::Hit(frame) => {self.cont_hit(frame, context)},
 
             PlayerState::Charging => {self.class.clone().charging(self, context)},
             PlayerState::Parry(frame) => {self.class.clone().cont_parry(self, frame, context)},
@@ -96,7 +97,7 @@ impl ScriptTrait for Player {
         ctx: &mut ScriptMessageContext,
     ) {
         match self.state {
-            PlayerState::Dead => return(),
+            PlayerState::Dead(_) => return(),
             _ => {}
         }
 
@@ -109,9 +110,9 @@ impl ScriptTrait for Player {
                         AxisChanged(axis, value, _code) => self.moveplayer(axis, value, ctx),
                         ButtonPressed(button, _) => {
                             match button {
-                                RightTrigger => self.class.clone().start_melee_attack(self, ctx),
-                                LeftTrigger => self.class.clone().projectiles(self, ctx),
-                                RightThumb => self.class.clone().parry(self, ctx),
+                                RightTrigger => self.start_melee_attack(ctx),
+                                //LeftTrigger => self.class.clone().projectiles(self, ctx),
+                                RightThumb => self.parry(ctx),
                                 _ => (),
                             }},
                         // ButtonPressed(RightTrigger, _) => self.class.clone().start_melee_attack(self, ctx),
@@ -123,10 +124,13 @@ impl ScriptTrait for Player {
                     }
                 },
 
-                Hit{damage: dam, knockback: knock, body: bod, sender: send} => {
-                    self.class.clone().takehit(self, dam.clone(), knock.clone(), bod.clone(), send.clone(), ctx);
+                Hit{damage: dam, knockback: knock, sender: send} => {
+                    self.takehit(dam.clone(), knock.clone(), send.clone(), ctx);
                 },
-                Parried{} => {self.class.clone().parried(self, ctx)},
+                Parried{} => {
+                    //self.class.clone().parried(self, ctx)
+                },
+                _ => (),
             }
         }
     }
@@ -173,7 +177,127 @@ impl Player {
         node.local_transform_mut().set_rotation(UnitQuaternion::face_towards(&Vector3::z_axis(), &facing));
     }
 
+    ///checks if a melee attack can be made, and if so sends a message to weapon
+    pub fn start_melee_attack(&mut self, ctx: &mut ScriptMessageContext) {
+        //check if the player is in a valid state to start an attack
+        let atk = match self.state {
+            PlayerState::Idle => true,
+            PlayerState::Charging => true,
+            _ => false
+        };
+        
+        if atk {
+            self.state = PlayerState::Attacking(1);
+            ctx.message_sender.send_to_target(self.weapon,
+                Message::Attack{s: true});
+        }
+    }
 
+    ///checks if an attack should continue or end, 
+    /// and messages the weapon to stop the attack if it should end
+    pub fn check_attack(&mut self, frame: i32, ctx: &mut ScriptContext) {
+        let (interval, lag) = match self.class {
+            Class::Barbarian => (Class::BARBINT, Class::BARBLAG),
+            Class::Rogue => (Class::ROGINT, Class::ROGLAG),
+            Class::Wizard => (Class::WIZINT, Class::WIZLAG),
+            Class::Fighter => (Class::FIGINT, Class::FIGLAG),
+        };
+        //while in the attack
+        if frame <= interval {
+            //advance the current frame
+            self.state = PlayerState::Attacking(frame+1)
+        } else if frame < interval + lag {
+            //if we're in end lag, don't touch the weapon, just advance the frame
+            self.state = PlayerState::Attacking(frame+1)
+        } else {
+            //attack is over
+            self.state = PlayerState::Idle;
+            ctx.message_sender.send_to_target(self.weapon, Message::Attack{s: false});
+        }
+    }
 
+    /// called when the player has been hit by an attack.
+    pub fn takehit(&mut self, dam: u32, knock: Vector3<f32>, _send: Handle<Node>, ctx: &mut ScriptMessageContext) {
+        //if currently hit or dead, return
+        match self.state {
+            PlayerState::Hit(_) => return,
+            PlayerState::Dead(_) => return,
+            _=> (),
+        }
+        //tell game to update health
+        if let Some(game) = ctx.plugins[0].cast_mut::<Game>() {
+            game.phealthchanged = true;
+        }
+
+        //take damage, die if necessary
+        if self.health <= dam {
+            self.die(ctx);
+            self.health = 0;
+            return;
+        } else {
+            self.health -= dam;
+            //set status to Hit
+            self.state = PlayerState::Hit(0);
+        }
+        //take knockback
+        if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+            rigid_body.set_lin_vel(Vector2::new(knock.x, knock.y));
+
+        }
+        //tell weapon to vanish
+        ctx.message_sender.send_to_target(self.weapon,
+            Message::Attack{s: false}
+        );
+
+    }
+
+    pub fn die(&mut self, context: &mut ScriptMessageContext) {
+        self.state = PlayerState::Dead(100); //respawn time later?
+        context.message_sender.send_to_target(self.weapon,
+            Message::Attack{s: false}
+        );
+        context.scene.graph[context.handle].set_enabled(false);
+        context.scene.graph[context.handle].set_visibility(false);
+    }
+
+    ///called every frame while the player is hit
+    pub fn cont_hit(&mut self, frame: i32, context: &mut ScriptContext) {
+        if frame < Class::HITDUR {
+            //if player is still stunlocked
+            let v = context.scene.graph[context.handle.clone()].global_visibility();
+            context.scene.graph[context.handle.clone()].set_visibility(!v);
+            
+            self.state = PlayerState::Hit(frame+1);
+            //otherwise, 
+        } else {
+            context.scene.graph[context.handle.clone()].set_visibility(true);
+            self.state = PlayerState::Idle;
+        }
+    }
+
+    ///called when the player starts a parry
+    pub fn parry(&mut self, ctx: &mut ScriptMessageContext) {
+        //check if player can parry
+        match self.state {
+            PlayerState::Idle => (),
+            _ => {return;}
+        }
+
+        //change state to parrying
+        self.state = PlayerState::Parry(0);
+
+        //tell weapon to start parrying
+        ctx.message_sender.send_to_target(self.weapon, 
+            Message::Start_Parry{}
+        );
+    }
 
 }
+
+
+//todo: 
+//start parry fn should do player parry things
+// cont parry fn should advance frames and end the parry, send weapn message when parry ends
+// 
+// projectiles eventually
+//respawning eventually?
