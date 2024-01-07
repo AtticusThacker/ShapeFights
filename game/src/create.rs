@@ -289,3 +289,40 @@ pub fn create_facing_chevron(facing: Vector3<f32>, context: &mut ScriptContext) 
 
     return chevron;
 }
+
+pub fn create_projectile(facing: Vector3<f32>, ctx: &mut ScriptMessageContext) -> Handle<Node> {
+    let mut trans = ctx.scene.graph[ctx.handle].local_transform().clone();
+        let mut dirvec = facing;
+        dirvec.set_magnitude(1.25);
+        trans.offset(dirvec);
+
+        let mut spd = Vector2::new(facing[0],facing[1]);
+        spd.set_magnitude(Class::RATKSPD);
+
+        let proj = RigidBodyBuilder::new(BaseBuilder::new().with_children(&[
+            RectangleBuilder::new(
+                BaseBuilder::new().with_local_transform(
+                    TransformBuilder::new()
+                        // Size of the rectangle is defined only by scale.
+                        .with_local_scale(Vector3::new(0.3, 0.5, 1.0))
+                        .build()
+                )
+            )
+                .with_texture(ctx.resource_manager.request::<Texture, _>("data/white_rectangle.png"))
+                .build(&mut ctx.scene.graph),
+            // Rigid body must have at least one collider
+            ColliderBuilder::new(BaseBuilder::new())
+                .with_shape(ColliderShape::cuboid(0.15, 0.25))
+                .with_sensor(true)
+                .build(&mut ctx.scene.graph),
+            
+            ])
+            .with_local_transform(trans)
+        )
+        .with_gravity_scale(0.0)
+        .with_lin_vel(spd)
+        .with_can_sleep(false)
+        .with_ccd_enabled(true)
+        .build(&mut ctx.scene.graph);
+    return proj;
+}

@@ -116,7 +116,7 @@ impl ScriptTrait for Player {
                         ButtonPressed(button, _) => {
                             match button {
                                 RightTrigger => self.start_melee_attack(ctx),
-                                //LeftTrigger => self.class.clone().projectiles(self, ctx),
+                                LeftTrigger => self.projectiles(ctx),
                                 RightThumb => self.parry(ctx),
                                 _ => (),
                             }},
@@ -135,6 +135,7 @@ impl ScriptTrait for Player {
                 Parried{} => {
                     //self.class.clone().parried(self, ctx)
                 },
+                Charges{i} => {self.charges += i},
                 _ => (),
             }
         }
@@ -308,6 +309,33 @@ impl Player {
             self.state = PlayerState::Idle;
         }  else {
             self.state = PlayerState::Parry(frame+1);
+        }
+    }
+
+    pub fn projectiles(&mut self, ctx: &mut ScriptMessageContext) {
+        match self.class{
+            Class::Barbarian => {
+                //self.start_charge(script, ctx); 
+                return;
+            }
+            Class::Rogue => {
+                //self.riposte(script, ctx); 
+                return;}
+            Class::Fighter if self.charges > 0 => {self.charges -= 1;}
+            Class::Fighter => {return;},
+            Class::Wizard => {},
+        };
+        
+        
+        if self.cooldown > Class::RCOOL && self.state == PlayerState::Idle {
+            //create projectile
+            let proj = create_projectile(self.facing, ctx);
+            // set its script
+            set_script(&mut ctx.scene.graph[proj.clone()], 
+                        Projectile{facing: self.facing.clone(), hit: false, life: 120}
+                        );
+
+            self.cooldown = 0
         }
     }
 

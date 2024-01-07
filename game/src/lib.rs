@@ -67,7 +67,7 @@ pub mod weapon;
 
 use messages::{
     Message,
-    Message::{Controller, Hit, Parried},
+    Message::{Hit, Controller, Parried, Attack, Start_Parry, Charges, },
 };
 use class::Class;
 
