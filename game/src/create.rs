@@ -181,7 +181,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
                 weapon: weapon_handle,
                     cooldown: 0,
                     facing: Vector3::new(0.0,1.0,0.0),
-                health: 14,
+                health: Class::BARBHEALTH,
                 charges: 0,
             })
         },
@@ -193,7 +193,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
                 weapon: weapon_handle,
                     cooldown: 0,
                     facing: Vector3::new(0.0,1.0,0.0),
-                health: 12,
+                health: Class::FIGHEALTH,
                 charges: 0,
             })
         },
@@ -205,7 +205,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
             weapon: weapon_handle,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
-            health: 7,
+            health: Class::ROGHEALTH,
             charges: 0,
             })
         },
@@ -217,7 +217,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
             weapon: weapon_handle,
                 cooldown: 0,
                 facing: Vector3::new(0.0,1.0,0.0),
-            health: 7,
+            health: Class::WIZHEALTH,
             charges: 0,
         })
         }

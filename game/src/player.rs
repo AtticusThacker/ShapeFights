@@ -4,6 +4,8 @@
 // health
 use crate::*;
 
+use rand::Rng;
+
 use fyrox::script::ScriptMessage;
 use gilrs::Axis;
 
@@ -83,7 +85,12 @@ impl ScriptTrait for Player {
     fn on_update(&mut self, context: &mut ScriptContext) {
         //update the various states 
         match self.state {
-            PlayerState::Dead(_) => return(), //later, we can use this for a respawn coundown
+            PlayerState::Dead(frame) => {
+                if frame > 1 {
+                    self.state = PlayerState::Dead(frame-1)
+                } else {
+                    self.respawn(context)
+                }}, //respawn coundown
             PlayerState::Attacking(frame) => {self.check_attack(frame, context)},
             PlayerState::Hit(frame) => {self.cont_hit(frame, context)},
 
@@ -117,10 +124,14 @@ impl ScriptTrait for Player {
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
     ) {
-        match self.state {
-            PlayerState::Dead(_) => return(),
-            _ => {}
+        if self.state == PlayerState::Dead(1){
+            return()
         }
+        //REMOVE THIS IF NOTHING BREAKS
+        // match self.state {
+        //     PlayerState::Dead(_) => return(),
+        //     _ => {}
+        // }
 
         if let Some(message) = message.downcast_ref::<Message>(){
             match message {
@@ -274,12 +285,50 @@ impl Player {
     }
 
     pub fn die(&mut self, context: &mut ScriptMessageContext) {
-        self.state = PlayerState::Dead(100); //respawn time later?
+        self.state = PlayerState::Dead(600); //respawn time
         context.message_sender.send_to_target(self.weapon,
             Message::Attack{s: false}
         );
-        context.scene.graph[context.handle].set_enabled(false);
+        //context.scene.graph[context.handle].set_enabled(false);
         context.scene.graph[context.handle].set_visibility(false);
+    }
+
+    //called when the respawn time runs out and the player needs to respawn
+    pub fn respawn(&mut self, context: &mut ScriptContext){
+        //enable the node, make the player visible again
+        //context.scene.graph[context.handle].set_enabled(true);
+        context.scene.graph[context.handle].set_visibility(true);
+        
+        self.state = PlayerState::Idle;
+
+        self.health = match self.class {
+            Class::Barbarian => Class::BARBHEALTH,
+            Class::Rogue => Class::ROGHEALTH,
+            Class::Wizard => Class::WIZHEALTH,
+            Class::Fighter => Class::FIGHEALTH
+        };
+
+        //tell game to update health
+        if let Some(game) = context.plugins[0].cast_mut::<Game>() {
+            game.phealthchanged = true;
+        }
+
+        //MOVE THE PLAYER SOMEWHERE: randomized between 4 spawnpoints
+        //should make these Class constants or... something. 
+
+        let mut spawnpoint = (Vec::<f32>::new());
+
+        match rand::thread_rng().gen_range(1..5) {
+            1 => spawnpoint = Vec::from([6.0, 3.0, 0.0]),
+            2 => spawnpoint = Vec::from([-6.0, 3.0, 0.0]),
+            3 => spawnpoint = Vec::from([-6.0, -3.0, 0.0]),
+            4 => spawnpoint = Vec::from([6.0, -3.0, 0.0]),
+            _ => spawnpoint = Vec::from([6.0, 3.0, 0.0])
+        };
+
+        context.scene.graph[context.handle]
+        .local_transform_mut()
+        .set_position(Vector3::new(spawnpoint[0], spawnpoint[1], spawnpoint[2]));
     }
 
     ///called every frame while the player is hit

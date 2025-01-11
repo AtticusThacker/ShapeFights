@@ -7,3 +7,4 @@ edition = "2021"
 [dependencies]
 fyrox = {workspace = true}
 gilrs = "0.10.3"
+rand = "0.8.5"

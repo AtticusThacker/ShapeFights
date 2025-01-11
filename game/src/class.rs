@@ -74,6 +74,12 @@ pub enum Class {
 }
 
 impl Class {
+    //starting / max health
+    pub const BARBHEALTH:u32 = 14;
+    pub const ROGHEALTH:u32 = 7;
+    pub const WIZHEALTH:u32 = 7;
+    pub const FIGHEALTH:u32 = 12;
+
     //speed of normal movement
     pub const BARBSPD:f32 = 2.5;
     pub const ROGSPD:f32 = 5.0;
