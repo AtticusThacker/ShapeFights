@@ -117,10 +117,10 @@ impl Class {
     pub const FIGKNOCK:f32 = 3.0;
 
     //ranged attack speed scalar
-    pub const RATKSPD:f32 = 4.5;
+    pub const RATKSPD:f32 = 6.0;
 
     //special attack speed cooldown (in frames)
-    pub const RCOOL:i32 = 60;
+    pub const RCOOL:i32 = 30;
     pub const CCOOL:i32 = 300;
 
     //charge length (frames)

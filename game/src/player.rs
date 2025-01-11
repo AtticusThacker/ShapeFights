@@ -7,7 +7,7 @@ use crate::*;
 use fyrox::script::ScriptMessage;
 use gilrs::Axis;
 
-#[derive(Visit, Reflect, Debug, Clone, Default, PartialEq)]
+#[derive(Visit, Reflect, Debug, Clone, Default)]
 pub enum PlayerState {
     #[default]
     Idle,
@@ -18,6 +18,22 @@ pub enum PlayerState {
     Attacking(i32),
     Hit(i32),
     Parry(i32),
+}
+
+//This makes it so that comparing player states ignores the value of the frame
+impl PartialEq for PlayerState {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (PlayerState::Idle, PlayerState::Idle)  => true,
+            (PlayerState::Charging, PlayerState::Charging) => true,
+            (PlayerState::Dead(_), PlayerState::Dead(_))  => true,
+            (PlayerState::Riposting, PlayerState::Riposting)  => true,
+            (PlayerState::Attacking(_), PlayerState::Attacking(_))  => true,
+            (PlayerState::Hit(_), PlayerState::Hit(_))  => true,
+            (PlayerState::Parry(_), PlayerState::Parry(_))  => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Visit, Reflect, Debug, Clone, Default)]

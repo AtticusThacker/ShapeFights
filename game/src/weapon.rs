@@ -80,7 +80,13 @@ impl ScriptTrait for Weapon {
                 Message::Attack{s} if !*s => self.restore_weapon_mes(ctx),
                 //start a parry
                 Message::Start_Parry{} => self.start_parry(ctx),
-                Message::Hit{sender, .. } => {self.takehit(sender.clone(), ctx)},
+                Message::Hit{sender, .. } => {
+                    if let Some(script) = ctx.scene.graph[self.player].try_get_script::<Player>(){
+                        if script.state == PlayerState::Parry(1){
+                            self.takehit(sender.clone(), ctx)
+                        }
+                    }
+                },
                 _ => (),
             }
         }

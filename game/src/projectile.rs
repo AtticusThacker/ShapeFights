@@ -53,34 +53,36 @@ impl ScriptTrait for Projectile {
             let collider = colnode.as_collider2d();
             // iterate over collisions
             for i in collider.intersects(&ctx.scene.graph.physics2d) {
-                //I think a very persistent bug in a previous version of this code arose from 
-                //sending the hit message to the wrong side of the interaction; I'm still
-                //trying to figure out how these intersection pairs work.
-                let other_collider_parent = if i.collider1 == collider_handle {
-                    ctx.scene.graph[i.collider2].parent()
-                } else {
-                    ctx.scene.graph[i.collider1].parent()
-                };
-                //probably should figure out how to get projectiles not to hit you 
-                // if other_collider_parent == self.player {
-                //     //stop hitting yourself
-                //     return;
-                // }
-                let parent_node = &ctx.scene.graph[other_collider_parent.clone()];
+                if i.has_any_active_contact{
+                    //I think a very persistent bug in a previous version of this code arose from 
+                    //sending the hit message to the wrong side of the interaction; I'm still
+                    //trying to figure out how these intersection pairs work.
+                    let other_collider_parent = if i.collider1 == collider_handle {
+                        ctx.scene.graph[i.collider2].parent()
+                    } else {
+                        ctx.scene.graph[i.collider1].parent()
+                    };
+                    //probably should figure out how to get projectiles not to hit you 
+                    // if other_collider_parent == self.player {
+                    //     //stop hitting yourself
+                    //     return;
+                    // }
+                    let parent_node = &ctx.scene.graph[other_collider_parent.clone()];
 
-                let mut knockvec = Vector3::new(1.0,1.0, 1.0);
-                //get the knockback vector
-                knockvec.set_magnitude(3.0);
+                    let mut knockvec = Vector3::new(1.0,1.0, 1.0);
+                    //get the knockback vector
+                    knockvec.set_magnitude(3.0);
 
 
-                ctx.message_sender.send_to_target(other_collider_parent,
-                    Message::Hit{
-                        damage: 3,
-                        knockback: knockvec,
-                        sender: ctx.handle,
-                    }
-                );
-                self.hit = true;
+                    ctx.message_sender.send_to_target(other_collider_parent,
+                        Message::Hit{
+                            damage: 3,
+                            knockback: knockvec,
+                            sender: ctx.handle,
+                        }
+                    );
+                    self.hit = true;
+                }
             }
             //     //for each active contact
             //     if i.has_any_active_contact {

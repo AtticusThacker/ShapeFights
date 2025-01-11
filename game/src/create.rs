@@ -273,14 +273,14 @@ pub fn create_facing_chevron(facing: Vector3<f32>, context: &mut ScriptContext) 
         )
         .with_texture(context.resource_manager.request::<Texture, _>("data/White_chevron.png"))
         .build(&mut context.scene.graph),
-        ColliderBuilder::new(BaseBuilder::new())
-                .with_shape(fyrox::scene::dim2::collider::ColliderShape::Triangle(TriangleShape{
-                    a: Vector2::new(0.0,0.25),
-                    b: Vector2::new(-0.15,0.0),
-                    c: Vector2::new(0.15,0.0),
-                }))
-                .with_sensor(true)
-                .build(&mut context.scene.graph),
+        // ColliderBuilder::new(BaseBuilder::new())
+        //         .with_shape(fyrox::scene::dim2::collider::ColliderShape::Triangle(TriangleShape{
+        //             a: Vector2::new(0.0,0.25),
+        //             b: Vector2::new(-0.15,0.0),
+        //             c: Vector2::new(0.15,0.0),
+        //         }))
+        //         .with_sensor(true)
+        //         .build(&mut context.scene.graph),
         ])
         .with_local_transform(trans)
     )
