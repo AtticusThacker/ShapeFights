@@ -23,7 +23,9 @@ impl ScriptTrait for Projectile {
     fn on_init(&mut self, _context: &mut ScriptContext) {}
     
     // Put start logic - it is called when every other script is already initialized.
-    fn on_start(&mut self, _context: &mut ScriptContext) { }
+    fn on_start(&mut self, context: &mut ScriptContext) {
+        context.message_dispatcher.subscribe_to::<Message>(context.handle);
+     }
 
     // Called whenever there is an event from OS (mouse click, keypress, etc.)
     fn on_os_event(&mut self, _event: &Event<()>, _context: &mut ScriptContext) {}
@@ -31,7 +33,12 @@ impl ScriptTrait for Projectile {
     fn on_message(&mut self, message: &mut dyn ScriptMessagePayload, ctx: &mut ScriptMessageContext) {
         if let Some(message) = message.downcast_ref::<Message>(){
             match message {
-                Message::Attack{s} if !*s => {self.hit = true;},
+                Message::Attack{s} if (!*s & !self.hit) => {
+                    println!("recieved!");
+                    self.hit = true;
+                    self.life = 5;
+                    ctx.scene.graph[ctx.handle].set_visibility(false);
+                },
                 _ => (),
             }
         }
@@ -67,7 +74,7 @@ impl ScriptTrait for Projectile {
                     //     //stop hitting yourself
                     //     return;
                     // }
-                    let parent_node = &ctx.scene.graph[other_collider_parent.clone()];
+                    
 
                     let mut knockvec = Vector3::new(1.0,1.0, 1.0);
                     //get the knockback vector
@@ -81,7 +88,11 @@ impl ScriptTrait for Projectile {
                             sender: ctx.handle,
                         }
                     );
-                    self.hit = true;
+
+                    // let parent_node = &ctx.scene.graph[other_collider_parent.clone()];
+                    if let Some(target_script) = ctx.scene.graph[other_collider_parent].try_get_script::<Weapon>(){
+                    
+                    } else {self.hit = true;}
                 }
             }
             //     //for each active contact

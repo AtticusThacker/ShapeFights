@@ -255,6 +255,7 @@ impl Weapon {
         ctx.message_sender.send_to_target(sender, 
             Message::Attack{s: false}
         );
+        println!("sent");
         // add a rogue charge on a successful parry
 
     }

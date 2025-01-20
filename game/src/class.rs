@@ -135,6 +135,9 @@ impl Class {
     //hitstun duration (frames)
     pub const HITDUR: i32 = 30;
 
+    // //I-Frame duration
+    // pub const IFRAMES: i32 = 30;
+
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
 
         //tell game to update health

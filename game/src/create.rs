@@ -324,5 +324,9 @@ pub fn create_projectile(facing: Vector3<f32>, ctx: &mut ScriptMessageContext) -
         .with_can_sleep(false)
         .with_ccd_enabled(true)
         .build(&mut ctx.scene.graph);
+    set_script(&mut ctx.scene.graph[proj.clone()], 
+                Projectile{facing: facing.clone(), hit: false, life: 120}
+                     );
+
     return proj;
 }

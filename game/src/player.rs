@@ -179,6 +179,11 @@ impl Player {
     
     pub fn moveplayer(&mut self, axis: &Axis, value: &f32, ctx: &mut ScriptMessageContext) {
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
+            // if &self.state == PlayerState::Hit(1) {
+            //     match &self.state {
+            //         PlayerState::Hit(x)
+            //     }
+            // }
             match (axis, &self.class, self.state.clone()) {
                 (_, _, PlayerState::Hit(_)) => {}, //cant move when hit
                 (_, _, PlayerState::Charging) => {} //cant change direction while charging
@@ -395,10 +400,10 @@ impl Player {
         if self.cooldown > Class::RCOOL && self.state == PlayerState::Idle {
             //create projectile
             let proj = create_projectile(self.facing, ctx);
-            // set its script
-            set_script(&mut ctx.scene.graph[proj.clone()], 
-                        Projectile{facing: self.facing.clone(), hit: false, life: 120}
-                        );
+            // set its script (hopefully happening in create_projectile now)
+            // set_script(&mut ctx.scene.graph[proj.clone()], 
+            //             Projectile{facing: self.facing.clone(), hit: false, life: 120}
+            //             );
 
             self.cooldown = 0
         }
