@@ -183,6 +183,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
                     facing: Vector3::new(0.0,1.0,0.0),
                 health: Class::BARBHEALTH,
                 charges: 0,
+                iframes: 0,
             })
         },
         Class::Fighter => {
@@ -195,6 +196,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
                     facing: Vector3::new(0.0,1.0,0.0),
                 health: Class::FIGHEALTH,
                 charges: 0,
+                iframes: 0,
             })
         },
         Class::Rogue => {
@@ -207,6 +209,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
                 facing: Vector3::new(0.0,1.0,0.0),
             health: Class::ROGHEALTH,
             charges: 0,
+            iframes: 0,
             })
         },
         Class::Wizard => {
@@ -219,6 +222,7 @@ pub fn create_player(player_num: i8, player_class: Class, id: GamepadId, context
                 facing: Vector3::new(0.0,1.0,0.0),
             health: Class::WIZHEALTH,
             charges: 0,
+            iframes: 0,
         })
         }
     }

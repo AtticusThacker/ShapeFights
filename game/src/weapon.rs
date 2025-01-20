@@ -197,15 +197,12 @@ impl Weapon {
                     if parent_node.script().is_some() {
                         if matches!(self.class, Class::Fighter) {
                             if let Some(script) = ctx.scene.graph[other_collider_parent].try_get_script::<Player>() {
-                                match script.state {
-                                    PlayerState::Hit(_) => (),
-                                    PlayerState::Dead(_) => (),
-                                    _ => {
-                                        //tell fighters to increase their charge on a successful hit
-                                        ctx.message_sender.send_to_target(self.player,
-                                            Message::Charges{i: 1}
-                                        );
-                                    }
+                                //if the player hit is not dead or invincible, 
+                                //tell fighters to increase their charge on a sucessful hit
+                                if !((script.state == PlayerState::Dead(1)) | (script.iframes > 0)){
+                                    ctx.message_sender.send_to_target(self.player,
+                                        Message::Charges{i: 1}
+                                    );
                                 }
                             }
                         }

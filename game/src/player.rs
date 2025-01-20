@@ -47,6 +47,7 @@ pub struct Player{
     pub facing: Vector3<f32>, //z axis should always be 0.0 here!
     pub health: u32,
     pub charges: i32,
+    pub iframes: i32,
 }
 
 impl_component_provider!(Player,);
@@ -110,6 +111,18 @@ impl ScriptTrait for Player {
         };
 
         self.cooldown += 1;
+
+        //if currently invincible, flash and reduce i-frames
+        if self.iframes > 1 {
+            let v = context.scene.graph[context.handle.clone()].global_visibility();
+            context.scene.graph[context.handle.clone()].set_visibility(!v);
+
+            self.iframes -= 1;
+        } else if self.iframes == 1 {
+            context.scene.graph[context.handle.clone()].set_visibility(true);
+            self.iframes -= 1;
+        };
+
         //make the player face towards the facing vector
         Self::update_look(self.facing.clone(), &mut context.scene.graph[context.handle.clone()]);
 
@@ -256,12 +269,9 @@ impl Player {
 
     /// called when the player has been hit by an attack.
     pub fn takehit(&mut self, dam: u32, knock: Vector3<f32>, _send: Handle<Node>, ctx: &mut ScriptMessageContext) {
-        //if currently hit or dead, return
-        match self.state {
-            PlayerState::Hit(_) => return,
-            PlayerState::Dead(_) => return,
-            _=> (),
-        }
+        //if currently invincible or dead, return
+        if (self.state == PlayerState::Dead(1)) | (self.iframes > 0) {return;}
+
         //tell game to update health
         if let Some(game) = ctx.plugins[0].cast_mut::<Game>() {
             game.phealthchanged = true;
@@ -274,8 +284,9 @@ impl Player {
             return;
         } else {
             self.health -= dam;
-            //set status to Hit
+            //set status to Hit, give self iframes
             self.state = PlayerState::Hit(0);
+            self.iframes = Class::IFRAMES;
         }
         //take knockback
         if let Some(rigid_body) = ctx.scene.graph[ctx.handle.clone()].cast_mut::<RigidBody>() {
@@ -290,7 +301,7 @@ impl Player {
     }
 
     pub fn die(&mut self, context: &mut ScriptMessageContext) {
-        self.state = PlayerState::Dead(600); //respawn time
+        self.state = PlayerState::Dead(Class::DEATHDUR); //respawn time
         context.message_sender.send_to_target(self.weapon,
             Message::Attack{s: false}
         );
@@ -305,6 +316,9 @@ impl Player {
         context.scene.graph[context.handle].set_visibility(true);
         
         self.state = PlayerState::Idle;
+
+        //giving the player half a second of invincibility
+        self.iframes = Class::IFRAMES;
 
         self.health = match self.class {
             Class::Barbarian => Class::BARBHEALTH,
@@ -340,9 +354,6 @@ impl Player {
     pub fn cont_hit(&mut self, frame: i32, context: &mut ScriptContext) {
         if frame < Class::HITDUR {
             //if player is still stunlocked
-            let v = context.scene.graph[context.handle.clone()].global_visibility();
-            context.scene.graph[context.handle.clone()].set_visibility(!v);
-            
             self.state = PlayerState::Hit(frame+1);
             //otherwise, 
         } else {

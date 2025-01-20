@@ -133,10 +133,13 @@ impl Class {
     pub const CHARLEN:i32 = 8;
 
     //hitstun duration (frames)
-    pub const HITDUR: i32 = 30;
+    pub const HITDUR: i32 = 15;
 
-    // //I-Frame duration
-    // pub const IFRAMES: i32 = 30;
+    //I-Frame duration
+    pub const IFRAMES: i32 = 30;
+
+    //death duration
+    pub const DEATHDUR: i32 = 300;
 
     pub fn startup(&self, script: &mut Player, context: &mut ScriptContext) {
 
